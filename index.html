@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Documental - Gimnasio Martin Galeano</title>
+  <title>Sistema Documental Primaria - Gimnasio Martin Galeano</title>
   
   <!-- Tipografía Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,15 +26,15 @@
       </div>
       <div>
         <h1>Gimnasio Martin Galeano</h1>
-        <p class="subtitle">Módulo de Gestión Documental & Base de Datos Docente</p>
+        <p class="subtitle">Repositorio Documental & Base de Datos • <strong>Básica Primaria</strong></p>
       </div>
     </div>
     <div class="nav-actions">
       <span class="badge-status">
-        <i class="ph-fill ph-circle"></i> Repositorio Local Conectado
+        <i class="ph-fill ph-circle"></i> Sede Primaria Conectada
       </span>
       <button class="btn btn-primary" id="btnOpenModal">
-        <i class="ph-bold ph-plus"></i> Registrar Documento
+        <i class="ph-bold ph-cloud-arrow-up"></i> Subir Documento
       </button>
     </div>
   </header>
@@ -70,19 +70,19 @@
           <span>Observador & Actas</span>
           <span class="count-badge" id="count-observador">0</span>
         </button>
-        <button class="folder-btn" data-folder="pei">
-          <i class="ph-duotone ph-file-lock"></i>
-          <span>Institucional & PEI</span>
-          <span class="count-badge" id="count-pei">0</span>
+        <button class="folder-btn" data-folder="talleres">
+          <i class="ph-duotone ph-pencil-line"></i>
+          <span>Guías & Talleres de Clase</span>
+          <span class="count-badge" id="count-talleres">0</span>
         </button>
       </nav>
 
       <div class="db-summary-card">
         <div class="summary-title">
           <i class="ph-bold ph-database"></i>
-          <span>Esquema BD</span>
+          <span>Esquema BD Primaria</span>
         </div>
-        <p class="summary-desc">Estructura normalizada en JSON preparada para sincronización con base de datos en nube.</p>
+        <p class="summary-desc">Base de datos estructurada con almacenamiento local para archivos digitales de Básica Primaria.</p>
         <div class="storage-meter">
           <div class="storage-bar" id="storageBar"></div>
         </div>
@@ -96,7 +96,7 @@
       <!-- Migas de Pan y Ruta Activa -->
       <div class="breadcrumb-container">
         <div class="breadcrumb">
-          <span><i class="ph ph-hard-drive"></i> Unidad_MartinGaleano</span>
+          <span><i class="ph ph-hard-drive"></i> MartinGaleano_Primaria</span>
           <i class="ph ph-caret-right separator"></i>
           <span class="current-path" id="currentPathText">/root/todos</span>
         </div>
@@ -115,36 +115,40 @@
       <section class="filters-bar">
         <div class="search-box">
           <i class="ph ph-magnifying-glass"></i>
-          <input type="text" id="searchInput" placeholder="Buscar por título, docente, etiqueta o código...">
+          <input type="text" id="searchInput" placeholder="Buscar por título, docente, archivo o código...">
         </div>
         <div class="filter-group">
+          <!-- Filtro exclusivo para Básica Primaria -->
           <select id="gradeFilter">
-            <option value="">Todos los grados</option>
-            <option value="Preescolar">Preescolar</option>
-            <option value="Primaria">Básica Primaria</option>
-            <option value="Secundaria">Básica Secundaria</option>
-            <option value="Media">Media Vocacional</option>
-            <option value="General">Institucional General</option>
+            <option value="">Todos los grados de Primaria</option>
+            <option value="Transición">Transición / Preescolar</option>
+            <option value="Primero (1°)">Grado Primero (1°)</option>
+            <option value="Segundo (2°)">Grado Segundo (2°)</option>
+            <option value="Tercero (3°)">Grado Tercero (3°)</option>
+            <option value="Cuarto (4°)">Grado Cuarto (4°)</option>
+            <option value="Quinto (5°)">Grado Quinto (5°)</option>
+            <option value="Primaria General">Primaria General</option>
           </select>
         </div>
       </section>
 
-      <!-- Contenedor Dinámico de Documentos -->
+      <!-- Contenedor Dinámico de Documentos (Tarjetas) -->
       <section id="documentsContainer" class="cards-grid">
         <!-- Renderizado dinámicamente con JS -->
       </section>
 
-      <!-- Tabla Alternativa (Oculta por defecto) -->
+      <!-- Tabla Alternativa de BD -->
       <section id="tableContainer" class="table-wrapper hidden">
         <table class="db-table">
           <thead>
             <tr>
-              <th>ID Referencia</th>
+              <th>ID Ref</th>
               <th>Documento</th>
               <th>Carpeta / Ruta</th>
-              <th>Nivel Escolar</th>
+              <th>Grado</th>
               <th>Periodo</th>
               <th>Docente</th>
+              <th>Archivo Adjunto</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -158,50 +162,68 @@
       <div id="emptyState" class="empty-state hidden">
         <i class="ph-duotone ph-folder-open"></i>
         <h3>No se encontraron registros</h3>
-        <p>No hay documentos que coincidan con la ruta o el filtro de búsqueda seleccionado.</p>
+        <p>No hay documentos en este grado escolar o con el criterio de búsqueda actual.</p>
       </div>
 
     </main>
   </div>
 
-  <!-- Modal para Agregar Registro a la Base de Datos -->
+  <!-- Modal para Subir y Registrar Documento -->
   <div class="modal-backdrop" id="modalDoc">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <div class="modal-icon"><i class="ph-bold ph-file-plus"></i></div>
+          <div class="modal-icon"><i class="ph-bold ph-cloud-arrow-up"></i></div>
           <div>
-            <h3>Nuevo Registro Documental</h3>
-            <p>Ingresa los metadatos del archivo para la base de datos institucional</p>
+            <h3>Subir Documento a la BD</h3>
+            <p>Adjunta el archivo y clasifícalo en el grado correspondiente</p>
           </div>
         </div>
         <button class="btn-close" id="btnCloseModal"><i class="ph-bold ph-x"></i></button>
       </div>
 
       <form id="docForm">
+        <!-- Selector interactivo de archivo -->
         <div class="form-group">
-          <label for="docTitle">Título del Documento *</label>
-          <input type="text" id="docTitle" required placeholder="Ej: Planeación Didáctica Matemáticas - Periodo 1">
+          <label>Archivo a Subir *</label>
+          <div class="file-dropzone" id="dropzone">
+            <i class="ph-duotone ph-file-arrow-up"></i>
+            <p class="drop-text" id="dropText">Haz clic para seleccionar o arrastra tu archivo aquí</p>
+            <span class="file-hint">PDF, Word, Excel, PowerPoint o Imágenes (Máx 5MB)</span>
+            <input type="file" id="fileInput" class="file-hidden-input" required>
+          </div>
+          <div id="fileSelectedBadge" class="file-selected-badge hidden">
+            <i class="ph-bold ph-file-check"></i>
+            <span id="selectedFileName">archivo.pdf</span>
+            <button type="button" id="btnRemoveFile" class="btn-remove-file"><i class="ph-bold ph-x"></i></button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="docTitle">Título o Nombre del Registro *</label>
+          <input type="text" id="docTitle" required placeholder="Ej: Malla Curricular Matemáticas - Grado 3°">
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label for="docFolder">Ruta / Categoría *</label>
+            <label for="docFolder">Carpeta / Categoría *</label>
             <select id="docFolder" required>
               <option value="planeaciones">Planeaciones & Mallas</option>
               <option value="calificaciones">Planillas & Boletines</option>
               <option value="observador">Observador & Actas</option>
-              <option value="pei">Institucional & PEI</option>
+              <option value="talleres">Guías & Talleres de Clase</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="docGrade">Nivel / Grado *</label>
+            <label for="docGrade">Grado Escolar *</label>
             <select id="docGrade" required>
-              <option value="Preescolar">Preescolar</option>
-              <option value="Primaria">Básica Primaria</option>
-              <option value="Secundaria">Básica Secundaria</option>
-              <option value="Media">Media Vocacional</option>
-              <option value="General">Institucional General</option>
+              <option value="Primero (1°)">Grado Primero (1°)</option>
+              <option value="Segundo (2°)">Grado Segundo (2°)</option>
+              <option value="Tercero (3°)">Grado Tercero (3°)</option>
+              <option value="Cuarto (4°)">Grado Cuarto (4°)</option>
+              <option value="Quinto (5°)">Grado Quinto (5°)</option>
+              <option value="Transición">Transición / Preescolar</option>
+              <option value="Primaria General">Primaria General</option>
             </select>
           </div>
         </div>
@@ -224,18 +246,15 @@
         </div>
 
         <div class="form-group">
-          <label for="docUrl">Enlace al Archivo / Repositorio (Opcional)</label>
-          <input type="url" id="docUrl" placeholder="https://drive.google.com/... o enlace de red">
-        </div>
-
-        <div class="form-group">
-          <label for="docNotes">Descripción o Observaciones</label>
-          <textarea id="docNotes" rows="2" placeholder="Detalles relevantes, logros cubiertos, etc."></textarea>
+          <label for="docNotes">Descripción u Observaciones Pedagógicas</label>
+          <textarea id="docNotes" rows="2" placeholder="Temas abarcados, estándares, observaciones del grupo..."></textarea>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
-          <button type="submit" class="btn btn-primary"><i class="ph-bold ph-floppy-disk"></i> Guardar en BD</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveSubmit">
+            <i class="ph-bold ph-floppy-disk"></i> Guardar en BD
+          </button>
         </div>
       </form>
     </div>
