@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Documental - Gimnasio Martin Galeano</title>
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Iconos Phosphor -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <!-- Hoja de estilos vinculada -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Barra de Navegación Superior -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-icon">
+        <i class="ph-bold ph-graduation-cap"></i>
+      </div>
+      <div>
+        <h1>Gimnasio Martin Galeano</h1>
+        <p class="subtitle">Módulo de Gestión Documental & Base de Datos Docente</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <span class="badge-status">
+        <i class="ph-fill ph-circle"></i> Repositorio Local Conectado
+      </span>
+      <button class="btn btn-primary" id="btnOpenModal">
+        <i class="ph-bold ph-plus"></i> Registrar Documento
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <div class="app-layout">
+    
+    <!-- Barra Lateral: Rutas de Almacenamiento -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <i class="ph-bold ph-folder-notch"></i>
+        <span>Rutas de Archivo</span>
+      </div>
+      
+      <nav class="folder-list">
+        <button class="folder-btn active" data-folder="all">
+          <i class="ph-fill ph-folders"></i>
+          <span>Todos los registros</span>
+          <span class="count-badge" id="count-all">0</span>
+        </button>
+        <button class="folder-btn" data-folder="planeaciones">
+          <i class="ph-duotone ph-notebook"></i>
+          <span>Planeaciones & Mallas</span>
+          <span class="count-badge" id="count-planeaciones">0</span>
+        </button>
+        <button class="folder-btn" data-folder="calificaciones">
+          <i class="ph-duotone ph-table"></i>
+          <span>Planillas & Boletines</span>
+          <span class="count-badge" id="count-calificaciones">0</span>
+        </button>
+        <button class="folder-btn" data-folder="observador">
+          <i class="ph-duotone ph-user-list"></i>
+          <span>Observador & Actas</span>
+          <span class="count-badge" id="count-observador">0</span>
+        </button>
+        <button class="folder-btn" data-folder="pei">
+          <i class="ph-duotone ph-file-lock"></i>
+          <span>Institucional & PEI</span>
+          <span class="count-badge" id="count-pei">0</span>
+        </button>
+      </nav>
+
+      <div class="db-summary-card">
+        <div class="summary-title">
+          <i class="ph-bold ph-database"></i>
+          <span>Esquema BD</span>
+        </div>
+        <p class="summary-desc">Estructura normalizada en JSON preparada para sincronización con base de datos en nube.</p>
+        <div class="storage-meter">
+          <div class="storage-bar" id="storageBar"></div>
+        </div>
+        <small id="storageText">Uso del esquema: Activo</small>
+      </div>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+      
+      <!-- Migas de Pan y Ruta Activa -->
+      <div class="breadcrumb-container">
+        <div class="breadcrumb">
+          <span><i class="ph ph-hard-drive"></i> Unidad_MartinGaleano</span>
+          <i class="ph ph-caret-right separator"></i>
+          <span class="current-path" id="currentPathText">/root/todos</span>
+        </div>
+        
+        <div class="view-toggles">
+          <button class="view-btn active" id="viewCards" title="Vista Cuadrícula">
+            <i class="ph-bold ph-squares-four"></i>
+          </button>
+          <button class="view-btn" id="viewTable" title="Vista Tabla BD">
+            <i class="ph-bold ph-table"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros y Búsqueda -->
+      <section class="filters-bar">
+        <div class="search-box">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" id="searchInput" placeholder="Buscar por título, docente, etiqueta o código...">
+        </div>
+        <div class="filter-group">
+          <select id="gradeFilter">
+            <option value="">Todos los grados</option>
+            <option value="Preescolar">Preescolar</option>
+            <option value="Primaria">Básica Primaria</option>
+            <option value="Secundaria">Básica Secundaria</option>
+            <option value="Media">Media Vocacional</option>
+            <option value="General">Institucional General</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Contenedor Dinámico de Documentos -->
+      <section id="documentsContainer" class="cards-grid">
+        <!-- Renderizado dinámicamente con JS -->
+      </section>
+
+      <!-- Tabla Alternativa (Oculta por defecto) -->
+      <section id="tableContainer" class="table-wrapper hidden">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th>ID Referencia</th>
+              <th>Documento</th>
+              <th>Carpeta / Ruta</th>
+              <th>Nivel Escolar</th>
+              <th>Periodo</th>
+              <th>Docente</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Renderizado dinámicamente con JS -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Vista Vacía -->
+      <div id="emptyState" class="empty-state hidden">
+        <i class="ph-duotone ph-folder-open"></i>
+        <h3>No se encontraron registros</h3>
+        <p>No hay documentos que coincidan con la ruta o el filtro de búsqueda seleccionado.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal para Agregar Registro a la Base de Datos -->
+  <div class="modal-backdrop" id="modalDoc">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon"><i class="ph-bold ph-file-plus"></i></div>
+          <div>
+            <h3>Nuevo Registro Documental</h3>
+            <p>Ingresa los metadatos del archivo para la base de datos institucional</p>
+          </div>
+        </div>
+        <button class="btn-close" id="btnCloseModal"><i class="ph-bold ph-x"></i></button>
+      </div>
+
+      <form id="docForm">
+        <div class="form-group">
+          <label for="docTitle">Título del Documento *</label>
+          <input type="text" id="docTitle" required placeholder="Ej: Planeación Didáctica Matemáticas - Periodo 1">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="docFolder">Ruta / Categoría *</label>
+            <select id="docFolder" required>
+              <option value="planeaciones">Planeaciones & Mallas</option>
+              <option value="calificaciones">Planillas & Boletines</option>
+              <option value="observador">Observador & Actas</option>
+              <option value="pei">Institucional & PEI</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="docGrade">Nivel / Grado *</label>
+            <select id="docGrade" required>
+              <option value="Preescolar">Preescolar</option>
+              <option value="Primaria">Básica Primaria</option>
+              <option value="Secundaria">Básica Secundaria</option>
+              <option value="Media">Media Vocacional</option>
+              <option value="General">Institucional General</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="docPeriod">Periodo Académico</label>
+            <select id="docPeriod">
+              <option value="1° Periodo">1° Periodo</option>
+              <option value="2° Periodo">2° Periodo</option>
+              <option value="3° Periodo">3° Periodo</option>
+              <option value="4° Periodo">4° Periodo</option>
+              <option value="Anual / Permanente">Anual / Permanente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="docAuthor">Docente Responsable *</label>
+            <input type="text" id="docAuthor" required placeholder="Ej: Profe María / Profe Robinson">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="docUrl">Enlace al Archivo / Repositorio (Opcional)</label>
+          <input type="url" id="docUrl" placeholder="https://drive.google.com/... o enlace de red">
+        </div>
+
+        <div class="form-group">
+          <label for="docNotes">Descripción o Observaciones</label>
+          <textarea id="docNotes" rows="2" placeholder="Detalles relevantes, logros cubiertos, etc."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="ph-bold ph-floppy-disk"></i> Guardar en BD</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Script JS vinculado -->
+  <script src="app.js"></script>
+</body>
+</html>
