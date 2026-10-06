@@ -12,7 +12,7 @@
   <!-- Iconos Phosphor -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <!-- Motor de Compresión y Descompresión JSZip -->
+  <!-- Motor de Compresión JSZip -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <link rel="stylesheet" href="styles.css">
@@ -149,7 +149,7 @@
           </nav>
         </div>
 
-        <!-- Categorías con Colores Pastel Individuales -->
+        <!-- Categorías de Rutas y Carpetas -->
         <div class="sidebar-section">
           <div class="sidebar-header">
             <i class="ph-bold ph-folder"></i>
@@ -165,14 +165,11 @@
               <span>Compartidos con Todos</span>
               <span class="count-badge badge-pub" id="count-public">0</span>
             </button>
-            
-            <!-- NUEVO APARTADO: INSTITUCIONAL & CIRCULARES CON BADGE DE NOTIFICACIÓN -->
             <button class="folder-btn folder-institucional" data-folder="institucional">
               <i class="ph-duotone ph-buildings"></i>
               <span>Institucional & Circulares</span>
               <span class="whatsapp-badge hidden" id="sidebarInstitucionalBadge">0</span>
             </button>
-
             <button class="folder-btn folder-planeaciones" data-folder="planeaciones">
               <i class="ph-duotone ph-notebook"></i>
               <span>Planeaciones</span>
@@ -189,15 +186,32 @@
               <i class="ph-duotone ph-user-list"></i>
               <span>Observador & Actas</span>
             </button>
+
+            <!-- APARTADO DE BÓVEDA (SOLO RECTORA Y ADMIN) -->
+            <button class="folder-btn folder-boveda hidden" id="btnBovedaFolder" data-folder="boveda">
+              <i class="ph-bold ph-vault"></i>
+              <span>Bóveda de Archivos</span>
+              <i class="ph-bold ph-lock-key boveda-lock-icon"></i>
+            </button>
           </nav>
         </div>
 
+        <!-- MEDIDOR DE ALMACENAMIENTO Y RECORDATORIO DE 2GB -->
         <div class="db-summary-card">
           <div class="summary-title">
-            <i class="ph-bold ph-shield-check"></i>
-            <span>Límite de Almacenamiento</span>
+            <i class="ph-bold ph-hard-drive"></i>
+            <span>Almacenamiento del Sistema</span>
           </div>
-          <p class="summary-desc" id="quotaSummaryDesc">Calculando cuota...</p>
+          <div class="storage-bar-wrapper">
+            <div class="storage-bar-progress" id="storageProgressBar"></div>
+          </div>
+          <div class="storage-labels">
+            <span id="storageUsedText">0 MB usados</span>
+            <span id="storageFreeText">2.00 GB disponibles</span>
+          </div>
+          <p class="summary-reminder">
+            <i class="ph-bold ph-info"></i> Recordatorio: límite máximo de <strong>2 GB</strong> por archivo.
+          </p>
         </div>
       </aside>
 
@@ -221,11 +235,45 @@
           </div>
         </div>
 
-        <!-- Filtros -->
-        <section class="filters-bar">
+        <!-- PANEL ESPECIAL PARA BÓVEDA (AÑOS Y SUBCARPETAS) -->
+        <section id="bovedaControlsSection" class="boveda-controls hidden">
+          <div class="boveda-banner">
+            <div class="boveda-banner-icon"><i class="ph-bold ph-shield-check"></i></div>
+            <div>
+              <h3>Bóveda Directiva de Alta Capacidad</h3>
+              <p>Archivos históricos, contables y confidenciales de Rectoría. Organizados por año y subcarpeta.</p>
+            </div>
+          </div>
+          <div class="boveda-filters-row">
+            <div class="filter-group">
+              <label for="bovedaYearFilter"><i class="ph-bold ph-calendar"></i> Año Lectivo:</label>
+              <select id="bovedaYearFilter">
+                <option value="all">Todos los años</option>
+                <option value="2026" selected>Año 2026</option>
+                <option value="2025">Año 2025</option>
+                <option value="2024">Año 2024</option>
+                <option value="Historico">Archivo Histórico</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="bovedaSubfolderFilter"><i class="ph-bold ph-folder-notch-open"></i> Subcarpeta:</label>
+              <select id="bovedaSubfolderFilter">
+                <option value="all">Todas las subcarpetas</option>
+                <option value="consejo">Actas de Consejo Directivo</option>
+                <option value="financiero">Financiero & Contable</option>
+                <option value="legal">Resoluciones & Legalidad</option>
+                <option value="contratos">Contratos & Nómina Docente</option>
+                <option value="pei_soporte">Soportes PEI & Licencias</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Filtros Normales de Documentos -->
+        <section class="filters-bar" id="generalFiltersBar">
           <div class="search-box">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="searchInput" placeholder="Buscar por título, docente, circular...">
+            <input type="text" id="searchInput" placeholder="Buscar por título, docente, archivo, año...">
           </div>
 
           <div class="filter-group">
@@ -267,9 +315,9 @@
               <tr>
                 <th>ID Ref</th>
                 <th>Documento</th>
-                <th>Docente</th>
-                <th>Grado</th>
-                <th>Materia</th>
+                <th>Docente / Cargo</th>
+                <th>Grado / Año</th>
+                <th>Materia / Subcarpeta</th>
                 <th>Categoría</th>
                 <th>Fecha y Hora</th>
                 <th>Tamaño</th>
@@ -287,6 +335,43 @@
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONTRASEÑA DE LA BÓVEDA -->
+  <div class="modal-backdrop" id="modalBovedaAuth">
+    <div class="modal modal-auth">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon boveda-modal-icon">
+            <i class="ph-bold ph-lock-key"></i>
+          </div>
+          <div>
+            <h3>Bóveda de Archivos Confidencial</h3>
+            <p>Acceso restringido para Rectoría y Administrador</p>
+          </div>
+        </div>
+        <button class="btn-close" id="btnCloseBovedaAuth"><i class="ph-bold ph-x"></i></button>
+      </div>
+
+      <form id="bovedaAuthForm" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+        <p style="font-size: 0.85rem; color: #475569;">
+          Esta área contiene archivos directivos de hasta 2 GB organizados por años y subcarpetas. Por favor ingresa la clave de seguridad para desbloquearla:
+        </p>
+
+        <div class="form-group">
+          <label for="bovedaPassword">Clave de Seguridad de la Bóveda</label>
+          <input type="password" id="bovedaPassword" placeholder="Ingrese clave de bóveda" required>
+          <small class="helper-text">Clave de acceso: <code>bobeda2026</code></small>
+        </div>
+
+        <div class="modal-footer" style="padding: 0; margin-top: 0.5rem;">
+          <button type="button" class="btn btn-secondary" id="btnCancelBovedaAuth">Cancelar</button>
+          <button type="submit" class="btn btn-primary" style="background-color: #0f172a;">
+            <i class="ph-bold ph-key"></i> Desbloquear Bóveda
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -330,7 +415,7 @@
 
         <div class="form-group">
           <label for="docTitle">Título del Documento *</label>
-          <input type="text" id="docTitle" required placeholder="Ej: Circular Informativa N° 04 - Horarios de Evaluación">
+          <input type="text" id="docTitle" required placeholder="Ej: Planilla Consolidada de Notas">
         </div>
 
         <div class="form-grid-3">
@@ -346,7 +431,7 @@
           </div>
 
           <div class="form-group">
-            <label for="docGrade">Grado *</label>
+            <label for="docGrade">Grado / Nivel *</label>
             <select id="docGrade" required>
               <option value="Primero (1°)">Grado 1°</option>
               <option value="Segundo (2°)">Grado 2°</option>
@@ -355,11 +440,12 @@
               <option value="Quinto (5°)">Grado 5°</option>
               <option value="Transición">Transición</option>
               <option value="General">General</option>
+              <option value="Directivo">Directivo (Bóveda)</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="docSubject">Materia *</label>
+            <label for="docSubject">Materia / Área *</label>
             <select id="docSubject" required>
               <option value="Matemáticas">Matemáticas</option>
               <option value="Lengua Castellana">Lengua Castellana</option>
@@ -370,6 +456,7 @@
               <option value="Ética y Valores">Ética y Valores</option>
               <option value="Tecnología e Informática">Tecnología e Informática</option>
               <option value="Institucional">Institucional</option>
+              <option value="Directiva">Directiva / Bóveda</option>
             </select>
           </div>
         </div>
@@ -383,6 +470,8 @@
               <option value="calificaciones">Planillas de Notas</option>
               <option value="talleres">Guías & Talleres</option>
               <option value="observador">Observador & Actas</option>
+              <!-- Opción Bóveda visible solo para Rectora/Admin -->
+              <option value="boveda" id="optionBovedaModal">🔒 Bóveda de Archivos (Confidencial)</option>
             </select>
           </div>
 
@@ -398,20 +487,43 @@
           </div>
         </div>
 
-        <div class="form-group-checkbox">
+        <!-- Campos adicionales si se sube a la Bóveda -->
+        <div id="bovedaFormFields" class="form-grid-2 hidden">
+          <div class="form-group">
+            <label for="docBovedaYear">Año de Radicación en Bóveda *</label>
+            <select id="docBovedaYear">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="Historico">Archivo Histórico</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="docBovedaSubfolder">Subcarpeta de Bóveda *</label>
+            <select id="docBovedaSubfolder">
+              <option value="consejo">Actas de Consejo Directivo</option>
+              <option value="financiero">Financiero & Contable</option>
+              <option value="legal">Resoluciones & Legalidad</option>
+              <option value="contratos">Contratos & Nómina Docente</option>
+              <option value="pei_soporte">Soportes PEI & Licencias</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group-checkbox" id="containerIsPublicCheck">
           <label class="checkbox-container">
             <input type="checkbox" id="docIsPublic" checked>
             <span class="checkmark"></span>
             <div class="checkbox-label">
               <strong>📢 Compartir con todos los profesores</strong>
-              <small>Notificará a los profesores con un globo de aviso para que lo lean.</small>
+              <small>Aparecerá en la carpeta pública accesible para todo el colegio.</small>
             </div>
           </label>
         </div>
 
         <div class="form-group">
           <label for="docNotes">Descripción o Contenido del Documento</label>
-          <textarea id="docNotes" rows="3" placeholder="Escribe el texto de la circular, comunicados o detalles relevantes..."></textarea>
+          <textarea id="docNotes" rows="3" placeholder="Detalles pedagógicos, texto de circular o notas del documento..."></textarea>
         </div>
 
         <div class="modal-footer">
@@ -424,7 +536,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE VISUALIZACIÓN EN PANTALLA (VER DOCUMENTO) -->
+  <!-- MODAL DE VISUALIZACIÓN EN PANTALLA -->
   <div class="modal-backdrop" id="modalViewDoc">
     <div class="modal modal-preview">
       <div class="modal-header">
@@ -440,9 +552,7 @@
         <button class="btn-close" id="btnCloseViewModal"><i class="ph-bold ph-x"></i></button>
       </div>
 
-      <div class="modal-body-view" id="viewDocBody">
-        <!-- Renderizado dinámico del contenido -->
-      </div>
+      <div class="modal-body-view" id="viewDocBody"></div>
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btnDoneView">Cerrar y Marcar como Leído</button>
