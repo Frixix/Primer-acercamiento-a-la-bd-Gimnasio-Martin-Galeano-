@@ -2,8 +2,6 @@
   --primary: #1e3a8a;          /* Azul Institucional */
   --primary-light: #2563eb;
   --primary-hover: #172554;
-  --accent: #d97706;
-  --public-green: #059669;
   --bg-body: #f8fafc;
   --surface: #ffffff;
   --surface-alt: #f1f5f9;
@@ -16,6 +14,44 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+
+  /* ========================================================
+     PALETA DE COLORES PASTEL EXCLUSIVA PARA CARPETAS/RUTAS
+     ======================================================== */
+  /* Todos los Documentos: Azul Pastel */
+  --pastel-all-bg: #e0f2fe;
+  --pastel-all-txt: #0369a1;
+  --pastel-all-border: #bae6fd;
+
+  /* Compartidos con Todos: Verde Menta Pastel */
+  --pastel-public-bg: #dcfce7;
+  --pastel-public-txt: #15803d;
+  --pastel-public-border: #bbf7d0;
+
+  /* Planeaciones: Lavanda / Violeta Pastel */
+  --pastel-plan-bg: #f3e8ff;
+  --pastel-plan-txt: #6b21a8;
+  --pastel-plan-border: #e9d5ff;
+
+  /* Planillas de Notas: Ámbar / Melocotón Pastel */
+  --pastel-notas-bg: #fef3c7;
+  --pastel-notas-txt: #b45309;
+  --pastel-notas-border: #fde68a;
+
+  /* Guías & Talleres: Rosa Pastel Suave */
+  --pastel-talleres-bg: #fce7f3;
+  --pastel-talleres-txt: #9d174d;
+  --pastel-talleres-border: #fbcfe8;
+
+  /* Observador & Actas: Turquesa / Cian Pastel */
+  --pastel-observador-bg: #ccfbf1;
+  --pastel-observador-txt: #0f766e;
+  --pastel-observador-border: #99f6e4;
+
+  /* Grados Escolares: Mismo Color Pastel Neutro (Gris Arena) */
+  --pastel-grade-bg: #f1f5f9;
+  --pastel-grade-txt: #334155;
+  --pastel-grade-border: #e2e8f0;
 }
 
 * {
@@ -222,7 +258,7 @@ body {
 .teacher-list, .folder-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .teacher-btn, .folder-btn {
@@ -231,7 +267,7 @@ body {
   gap: 10px;
   padding: 0.65rem 0.8rem;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.85rem;
@@ -246,24 +282,67 @@ body {
   background-color: var(--surface-alt);
 }
 
-.teacher-btn.active, .folder-btn.active {
+.teacher-btn.active {
   background-color: #eff6ff;
   color: var(--primary);
   font-weight: 600;
+  border-color: #bfdbfe;
 }
 
-.teacher-btn i, .folder-btn i {
+.teacher-btn i {
   font-size: 1.15rem;
   color: var(--primary-light);
 }
 
-.public-folder-btn i {
-  color: var(--public-green) !important;
+/* ========================================================
+   ESTILOS PASTEL INDIVIDUALES PARA BOTONES DE CARPETAS (SIDEBAR)
+   ======================================================== */
+.folder-btn.folder-all i { color: var(--pastel-all-txt); }
+.folder-btn.folder-all.active {
+  background-color: var(--pastel-all-bg);
+  color: var(--pastel-all-txt);
+  border-color: var(--pastel-all-border);
+  font-weight: 700;
 }
 
-.public-folder-btn.active {
-  background-color: #ecfdf5 !important;
-  color: #065f46 !important;
+.folder-btn.folder-publico i { color: var(--pastel-public-txt); }
+.folder-btn.folder-publico.active {
+  background-color: var(--pastel-public-bg);
+  color: var(--pastel-public-txt);
+  border-color: var(--pastel-public-border);
+  font-weight: 700;
+}
+
+.folder-btn.folder-planeaciones i { color: var(--pastel-plan-txt); }
+.folder-btn.folder-planeaciones.active {
+  background-color: var(--pastel-plan-bg);
+  color: var(--pastel-plan-txt);
+  border-color: var(--pastel-plan-border);
+  font-weight: 700;
+}
+
+.folder-btn.folder-calificaciones i { color: var(--pastel-notas-txt); }
+.folder-btn.folder-calificaciones.active {
+  background-color: var(--pastel-notas-bg);
+  color: var(--pastel-notas-txt);
+  border-color: var(--pastel-notas-border);
+  font-weight: 700;
+}
+
+.folder-btn.folder-talleres i { color: var(--pastel-talleres-txt); }
+.folder-btn.folder-talleres.active {
+  background-color: var(--pastel-talleres-bg);
+  color: var(--pastel-talleres-txt);
+  border-color: var(--pastel-talleres-border);
+  font-weight: 700;
+}
+
+.folder-btn.folder-observador i { color: var(--pastel-observador-txt); }
+.folder-btn.folder-observador.active {
+  background-color: var(--pastel-observador-bg);
+  color: var(--pastel-observador-txt);
+  border-color: var(--pastel-observador-border);
+  font-weight: 700;
 }
 
 .count-badge {
@@ -276,11 +355,12 @@ body {
 }
 
 .badge-pub {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--pastel-public-bg);
+  color: var(--pastel-public-txt);
+  border: 1px solid var(--pastel-public-border);
 }
 
-.teacher-btn.active .count-badge, .folder-btn.active .count-badge {
+.teacher-btn.active .count-badge {
   background-color: var(--primary);
   color: #fff;
 }
@@ -464,35 +544,73 @@ select {
   flex-wrap: wrap;
 }
 
-.doc-tag {
+/* ========================================================
+   BADGES PASTEL EXCLUSIVOS PARA CARPETAS / RUTAS
+   ======================================================== */
+.tag-pastel-planeaciones {
   font-size: 0.68rem;
-  font-weight: 600;
-  padding: 2px 7px;
+  font-weight: 700;
+  padding: 3px 8px;
   border-radius: 999px;
-  background-color: #eff6ff;
-  color: var(--primary-light);
+  background-color: var(--pastel-plan-bg);
+  color: var(--pastel-plan-txt);
+  border: 1px solid var(--pastel-plan-border);
 }
 
-.doc-subject-tag {
+.tag-pastel-calificaciones {
   font-size: 0.68rem;
-  font-weight: 600;
-  padding: 2px 7px;
+  font-weight: 700;
+  padding: 3px 8px;
   border-radius: 999px;
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--pastel-notas-bg);
+  color: var(--pastel-notas-txt);
+  border: 1px solid var(--pastel-notas-border);
 }
 
-.doc-public-tag {
+.tag-pastel-talleres {
   font-size: 0.68rem;
-  font-weight: 600;
-  padding: 2px 7px;
+  font-weight: 700;
+  padding: 3px 8px;
   border-radius: 999px;
-  background-color: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background-color: var(--pastel-talleres-bg);
+  color: var(--pastel-talleres-txt);
+  border: 1px solid var(--pastel-talleres-border);
 }
 
-/* FECHA Y RADICADO SUTILES */
+.tag-pastel-observador {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background-color: var(--pastel-observador-bg);
+  color: var(--pastel-observador-txt);
+  border: 1px solid var(--pastel-observador-border);
+}
+
+.tag-pastel-public {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background-color: var(--pastel-public-bg);
+  color: var(--pastel-public-txt);
+  border: 1px solid var(--pastel-public-border);
+}
+
+/* ========================================================
+   BADGE PASTEL UNIFORME PARA TODOS LOS GRADOS ESCOLARES
+   ======================================================== */
+.tag-pastel-grade {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background-color: var(--pastel-grade-bg);
+  color: var(--pastel-grade-txt);
+  border: 1px solid var(--pastel-grade-border);
+}
+
+/* Fecha y radicado sutiles */
 .doc-meta-subtle {
   display: flex;
   align-items: center;
@@ -732,8 +850,8 @@ select {
 }
 
 .form-group-checkbox {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background-color: var(--pastel-public-bg);
+  border: 1px solid var(--pastel-public-border);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
 }
@@ -749,7 +867,7 @@ select {
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: var(--public-green);
+  accent-color: var(--pastel-public-txt);
   cursor: pointer;
 }
 
@@ -761,7 +879,7 @@ select {
 
 .checkbox-label strong {
   font-size: 0.85rem;
-  color: #065f46;
+  color: var(--pastel-public-txt);
 }
 
 .checkbox-label small {
@@ -789,15 +907,15 @@ select {
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
-  background-color: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  background-color: var(--pastel-public-bg);
+  border: 1px solid var(--pastel-public-border);
   border-radius: var(--radius-sm);
   font-size: 0.8rem;
-  color: #065f46;
+  color: var(--pastel-public-txt);
   margin-top: 4px;
 }
 
-.btn-remove-file { background: none; border: none; cursor: pointer; color: #065f46; }
+.btn-remove-file { background: none; border: none; cursor: pointer; color: var(--pastel-public-txt); }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 
 .empty-state {

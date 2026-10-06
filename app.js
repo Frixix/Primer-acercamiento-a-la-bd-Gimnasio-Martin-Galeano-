@@ -1,8 +1,8 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Fecha y Hora sutil integrada en la cabecera de la tarjeta
- * - Almacenamiento binario en IndexedDB (descarga exacta del archivo subido)
- * - Identificador único de radicado (MG-PRI-XXX)
+ * - Colores pastel diferenciados exclusivamente para Carpetas/Rutas
+ * - Color pastel uniforme y neutro para Grados Escolares
+ * - Almacenamiento binario en IndexedDB y descarga directa del archivo original
  */
 
 // 1. Usuarios Oficiales con Claves
@@ -69,7 +69,7 @@ async function deleteFileFromIndexedDB(id) {
   });
 }
 
-// 3. Base de datos inicial con Fecha y Hora de registro
+// 3. Base de datos inicial con Fecha y Hora
 const initialDocuments = [
   {
     id: "MG-PRI-001",
@@ -429,13 +429,12 @@ function resetFileInput() {
   dropText.textContent = "Clic o arrastra el archivo aquí";
 }
 
-// 9. Guardado con FECHA, HORA y ARCHIVO REAL EN INDEXEDDB
+// 9. Guardado de Documentos
 async function handleFormSubmit(e) {
   e.preventDefault();
 
   const isEditing = Boolean(editDocId.value);
 
-  // Fecha y hora formateada en español
   const now = new Date();
   const formattedDateTime = now.toLocaleString("es-CO", {
     year: "numeric",
@@ -506,7 +505,7 @@ async function handleFormSubmit(e) {
   alert(`✅ Documento "${docData.title}" guardado exitosamente.\nRegistrado el: ${formattedDateTime}`);
 }
 
-// 10. Eliminar Registro y Archivo
+// 10. Eliminar Registro
 window.deleteDoc = async function(id) {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
   if (!isPrivileged) {
@@ -601,7 +600,7 @@ function getFilteredDocuments() {
   });
 }
 
-// 13. Renderizado de Interfaz con Encabezado Sutil
+// 13. Renderizado de Interfaz con Estilo Pastel
 function renderApp() {
   updateCounts();
   updateBreadcrumb();
@@ -622,16 +621,22 @@ function renderApp() {
     const canDelete = isPrivileged;
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
     const fileIcon = getFileIconClass(doc.fileName);
+    const folderPastelClass = getFolderPastelClass(doc.folder);
 
     return `
       <article class="doc-card">
         <div class="doc-card-header">
           <div class="badges-group">
-            <span class="doc-tag">${formatFolder(doc.folder)}</span>
-            <span class="doc-subject-tag">${escapeHTML(doc.subject)}</span>
-            ${doc.isPublic ? '<span class="doc-public-tag"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
+            <!-- Carpeta en Color Pastel Exclusivo -->
+            <span class="${folderPastelClass}">${formatFolder(doc.folder)}</span>
+            
+            <!-- Grado en Color Pastel Uniforme -->
+            <span class="tag-pastel-grade">${doc.grade}</span>
+
+            <!-- Compartido público en Verde Menta Pastel -->
+            ${doc.isPublic ? '<span class="tag-pastel-public"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
           </div>
-          <!-- FECHA Y HORA SUTIL JUNTO AL ID RADICADO -->
+          <!-- Fecha y Radicado Sutiles -->
           <div class="doc-meta-subtle">
             <span>${doc.uploadedAt || 'Reciente'}</span>
             <span class="dot-separator">•</span>
@@ -647,8 +652,8 @@ function renderApp() {
             <span><strong>Docente:</strong> ${escapeHTML(doc.teacher)}</span>
           </div>
           <div class="doc-meta-item">
-            <i class="ph-bold ph-chalkboard-teacher"></i>
-            <span>${doc.grade} • ${doc.period}</span>
+            <i class="ph-bold ph-book-open"></i>
+            <span><strong>Materia:</strong> ${escapeHTML(doc.subject)} • ${doc.period}</span>
           </div>
           
           <div class="file-attachment-badge">
@@ -691,18 +696,20 @@ function renderApp() {
     const canDelete = isPrivileged;
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
     const fileIcon = getFileIconClass(doc.fileName);
+    const folderPastelClass = getFolderPastelClass(doc.folder);
 
     return `
       <tr>
         <td><code>${doc.id}</code></td>
         <td>
           <strong>${escapeHTML(doc.title)}</strong>
-          ${doc.isPublic ? ' <span class="doc-public-tag"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
+          ${doc.isPublic ? ' <span class="tag-pastel-public"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
         </td>
         <td><i class="ph ph-user"></i> ${escapeHTML(doc.teacher)}</td>
-        <td>${doc.grade} • <span class="doc-subject-tag">${escapeHTML(doc.subject)}</span></td>
+        <td><span class="tag-pastel-grade">${doc.grade}</span></td>
+        <td>${escapeHTML(doc.subject)}</td>
+        <td><span class="${folderPastelClass}">${formatFolder(doc.folder)}</span></td>
         <td><small><i class="ph-bold ph-clock"></i> ${doc.uploadedAt || "Reciente"}</small></td>
-        <td><span class="doc-tag">${formatFolder(doc.folder)}</span></td>
         <td><small><i class="${fileIcon}"></i> ${escapeHTML(doc.fileName)}</small></td>
         <td>
           <div class="action-buttons">
@@ -733,8 +740,8 @@ function updateBreadcrumb() {
     : `Mis Archivos (${currentUser.name})`;
 
   const folderMap = {
-    all: "Todas las carpetas",
-    publico: "📢 Compartidos con Todos",
+    all: "Todos los Documentos",
+    publico: "Compartidos con Todos",
     planeaciones: "Planeaciones",
     calificaciones: "Planillas de Notas",
     talleres: "Guías & Talleres",
@@ -760,7 +767,17 @@ function updateCounts() {
   document.getElementById("count-public").textContent = documents.filter(d => d.isPublic).length;
 }
 
-// Auxiliares
+// Asignación de Clases Pastel
+function getFolderPastelClass(folderKey) {
+  const map = {
+    planeaciones: "tag-pastel-planeaciones",
+    calificaciones: "tag-pastel-calificaciones",
+    talleres: "tag-pastel-talleres",
+    observador: "tag-pastel-observador"
+  };
+  return map[folderKey] || "tag-pastel-planeaciones";
+}
+
 function getFileIconClass(fileName) {
   if (!fileName) return "ph-bold ph-file";
   const ext = fileName.split('.').pop().toLowerCase();
@@ -774,9 +791,9 @@ function getFileIconClass(fileName) {
 function formatFolder(key) {
   const map = {
     planeaciones: "Planeaciones",
-    calificaciones: "Planillas",
-    talleres: "Guías/Talleres",
-    observador: "Observador"
+    calificaciones: "Planillas de Notas",
+    talleres: "Guías & Talleres",
+    observador: "Observador & Actas"
   };
   return map[key] || key;
 }
