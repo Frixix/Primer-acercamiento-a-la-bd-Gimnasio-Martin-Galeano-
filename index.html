@@ -80,6 +80,12 @@
       </div>
 
       <div class="nav-actions">
+        <!-- Notificación estilo WhatsApp en Navbar -->
+        <div class="nav-notification-bell" id="navNotificationBell" title="Circulares institucionales sin leer">
+          <i class="ph-bold ph-bell"></i>
+          <span class="whatsapp-badge hidden" id="bellBadge">0</span>
+        </div>
+
         <div class="user-chip">
           <div class="user-avatar" id="navAvatar">U</div>
           <div class="user-info">
@@ -96,11 +102,11 @@
       </div>
     </header>
 
-    <!-- Overlay oscuro para menú móvil -->
+    <!-- Overlay oscuro para móvil -->
     <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
 
     <div class="app-layout">
-      <!-- Barra lateral adaptable -->
+      <!-- Barra lateral -->
       <aside class="sidebar" id="mainSidebar">
         
         <div class="sidebar-top-mobile">
@@ -143,7 +149,7 @@
           </nav>
         </div>
 
-        <!-- Categorías con Colores Pastel -->
+        <!-- Categorías con Colores Pastel Individuales -->
         <div class="sidebar-section">
           <div class="sidebar-header">
             <i class="ph-bold ph-folder"></i>
@@ -159,6 +165,14 @@
               <span>Compartidos con Todos</span>
               <span class="count-badge badge-pub" id="count-public">0</span>
             </button>
+            
+            <!-- NUEVO APARTADO: INSTITUCIONAL & CIRCULARES CON BADGE DE NOTIFICACIÓN -->
+            <button class="folder-btn folder-institucional" data-folder="institucional">
+              <i class="ph-duotone ph-buildings"></i>
+              <span>Institucional & Circulares</span>
+              <span class="whatsapp-badge hidden" id="sidebarInstitucionalBadge">0</span>
+            </button>
+
             <button class="folder-btn folder-planeaciones" data-folder="planeaciones">
               <i class="ph-duotone ph-notebook"></i>
               <span>Planeaciones</span>
@@ -183,7 +197,7 @@
             <i class="ph-bold ph-shield-check"></i>
             <span>Límite de Almacenamiento</span>
           </div>
-          <p class="summary-desc" id="quotaSummaryDesc">Calculando cuota autorizada...</p>
+          <p class="summary-desc" id="quotaSummaryDesc">Calculando cuota...</p>
         </div>
       </aside>
 
@@ -207,11 +221,11 @@
           </div>
         </div>
 
-        <!-- Filtros: Búsqueda, Grado y Materia -->
+        <!-- Filtros -->
         <section class="filters-bar">
           <div class="search-box">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="searchInput" placeholder="Buscar por título, docente, materia...">
+            <input type="text" id="searchInput" placeholder="Buscar por título, docente, circular...">
           </div>
 
           <div class="filter-group">
@@ -243,10 +257,10 @@
           </div>
         </section>
 
-        <!-- Contenedor Tarjetas -->
+        <!-- Tarjetas -->
         <section id="documentsContainer" class="cards-grid"></section>
 
-        <!-- Contenedor Tabla -->
+        <!-- Tabla -->
         <section id="tableContainer" class="table-wrapper hidden">
           <table class="db-table">
             <thead>
@@ -256,9 +270,9 @@
                 <th>Docente</th>
                 <th>Grado</th>
                 <th>Materia</th>
-                <th>Categoría / Carpeta</th>
+                <th>Categoría</th>
                 <th>Fecha y Hora</th>
-                <th>Tamaño / Optimización</th>
+                <th>Tamaño</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -298,8 +312,7 @@
           <div class="file-dropzone" id="dropzone">
             <i class="ph-duotone ph-file-arrow-up"></i>
             <p class="drop-text" id="dropText">Clic o arrastra el archivo aquí</p>
-            <!-- Límite visible dinámico -->
-            <span class="file-hint" id="fileQuotaHint">Excel, PDF, Word (Comprobando límite...)</span>
+            <span class="file-hint" id="fileQuotaHint">Excel, PDF, Word...</span>
             <input type="file" id="fileInput" class="file-hidden-input">
           </div>
           
@@ -317,7 +330,7 @@
 
         <div class="form-group">
           <label for="docTitle">Título del Documento *</label>
-          <input type="text" id="docTitle" required placeholder="Ej: Planilla Consolidada de Notas">
+          <input type="text" id="docTitle" required placeholder="Ej: Circular Informativa N° 04 - Horarios de Evaluación">
         </div>
 
         <div class="form-grid-3">
@@ -363,8 +376,9 @@
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label for="docFolder">Carpeta / Tipo *</label>
+            <label for="docFolder">Carpeta / Categoría *</label>
             <select id="docFolder" required>
+              <option value="institucional">Institucional & Circulares</option>
               <option value="planeaciones">Planeaciones</option>
               <option value="calificaciones">Planillas de Notas</option>
               <option value="talleres">Guías & Talleres</option>
@@ -386,18 +400,18 @@
 
         <div class="form-group-checkbox">
           <label class="checkbox-container">
-            <input type="checkbox" id="docIsPublic">
+            <input type="checkbox" id="docIsPublic" checked>
             <span class="checkmark"></span>
             <div class="checkbox-label">
-              <strong> Compartir con todos los profesores</strong>
-              <small>Aparecerá en la carpeta pública para que cualquiera lo pueda descargar.</small>
+              <strong>📢 Compartir con todos los profesores</strong>
+              <small>Notificará a los profesores con un globo de aviso para que lo lean.</small>
             </div>
           </label>
         </div>
 
         <div class="form-group">
-          <label for="docNotes">Observaciones o Notas</label>
-          <textarea id="docNotes" rows="2" placeholder="Detalles pedagógicos..."></textarea>
+          <label for="docNotes">Descripción o Contenido del Documento</label>
+          <textarea id="docNotes" rows="3" placeholder="Escribe el texto de la circular, comunicados o detalles relevantes..."></textarea>
         </div>
 
         <div class="modal-footer">
@@ -407,6 +421,35 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE VISUALIZACIÓN EN PANTALLA (VER DOCUMENTO) -->
+  <div class="modal-backdrop" id="modalViewDoc">
+    <div class="modal modal-preview">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon" style="background-color: var(--pastel-inst-bg); color: var(--pastel-inst-txt);">
+            <i class="ph-bold ph-eye"></i>
+          </div>
+          <div>
+            <h3 id="viewDocTitle">Visualización de Documento</h3>
+            <p id="viewDocMetaSubtitle">Detalles institucionales</p>
+          </div>
+        </div>
+        <button class="btn-close" id="btnCloseViewModal"><i class="ph-bold ph-x"></i></button>
+      </div>
+
+      <div class="modal-body-view" id="viewDocBody">
+        <!-- Renderizado dinámico del contenido -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnDoneView">Cerrar y Marcar como Leído</button>
+        <button type="button" class="btn btn-primary" id="btnDownloadFromView">
+          <i class="ph-bold ph-download-simple"></i> Descargar Archivo
+        </button>
+      </div>
     </div>
   </div>
 

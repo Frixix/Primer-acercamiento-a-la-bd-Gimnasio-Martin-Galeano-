@@ -1,11 +1,12 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Límites de subida: Profesoras (15 MB), Rectora / Admin (2 GB = 2048 MB)
- * - Compresión JSZip inteligente (evita colapsar la RAM en archivos gigantes)
- * - Descompresión al vuelo y persistencia en IndexedDB
+ * - Categoría Institucional & Circulares
+ * - Notificaciones estilo WhatsApp (globo rojo) para profesoras
+ * - Modal "Ver Documento" con lectura y confirmación de visto
+ * - Compresión y descarga original
  */
 
-// 1. Usuarios Oficiales con Cuotas Máximas de Subida
+// 1. Usuarios Oficiales
 const USERS = {
   admin: { 
     name: "Administrador", 
@@ -13,7 +14,7 @@ const USERS = {
     label: "Administrador General", 
     initial: "A", 
     pass: "admin2026",
-    maxUploadBytes: 2 * 1024 * 1024 * 1024, // 2 GB
+    maxUploadBytes: 2 * 1024 * 1024 * 1024,
     maxUploadLabel: "2 GB"
   },
   claudia: { 
@@ -22,7 +23,7 @@ const USERS = {
     label: "Rectora Institucional", 
     initial: "C", 
     pass: "rectora2026",
-    maxUploadBytes: 2 * 1024 * 1024 * 1024, // 2 GB
+    maxUploadBytes: 2 * 1024 * 1024 * 1024,
     maxUploadLabel: "2 GB"
   },
   jessica: { 
@@ -31,7 +32,7 @@ const USERS = {
     label: "Docente", 
     initial: "J", 
     pass: "jessica2026",
-    maxUploadBytes: 15 * 1024 * 1024, // 15 MB
+    maxUploadBytes: 15 * 1024 * 1024,
     maxUploadLabel: "15 MB"
   },
   yuri: { 
@@ -40,7 +41,7 @@ const USERS = {
     label: "Docente", 
     initial: "Y", 
     pass: "yuri2026",
-    maxUploadBytes: 15 * 1024 * 1024, // 15 MB
+    maxUploadBytes: 15 * 1024 * 1024,
     maxUploadLabel: "15 MB"
   },
   elcy: { 
@@ -49,16 +50,22 @@ const USERS = {
     label: "Docente", 
     initial: "E", 
     pass: "elcy2026",
-    maxUploadBytes: 15 * 1024 * 1024, // 15 MB
+    maxUploadBytes: 15 * 1024 * 1024,
     maxUploadLabel: "15 MB"
   }
 };
 
 let currentUser = null;
 
-// ==========================================
-// 2. MOTOR DE ALMACENAMIENTO INDEXEDDB PARA ARCHIVOS
-// ==========================================
+// Registro de documentos leídos por cada usuario (para apagar el globo estilo WhatsApp)
+// Estructura: { "jessica": ["MG-PRI-002", ...], "yuri": [...] }
+let readReceipts = JSON.parse(localStorage.getItem('galeano_read_receipts_v1')) || {};
+
+function saveReadReceipts() {
+  localStorage.setItem('galeano_read_receipts_v1', JSON.stringify(readReceipts));
+}
+
+// 2. Almacenamiento en IndexedDB
 const DB_NAME = "GaleanoTieredDB";
 const STORE_NAME = "documents_payload";
 
@@ -109,7 +116,7 @@ async function deleteFileFromDB(id) {
   });
 }
 
-// 3. Base de datos inicial
+// 3. Base de datos inicial con apartado Institucional y Circular
 const initialDocuments = [
   {
     id: "MG-PRI-001",
@@ -130,20 +137,20 @@ const initialDocuments = [
   },
   {
     id: "MG-PRI-002",
-    title: "📢 Manual Institucional y Convivencia Escolar 2026",
-    folder: "observador",
+    title: "📢 Circular N° 01: Inicio de Bimestre y Directrices Institucionales",
+    folder: "institucional",
     grade: "General",
     subject: "Institucional",
     teacher: "Claudia (Rectora)",
     period: "Anual / Permanente",
     isPublic: true,
-    fileName: "Manual_Convivencia_Galeano_2026.pdf",
-    fileSize: "3.2 MB",
-    compressedSize: "1.1 MB",
-    ratio: "65%",
+    fileName: "Circular_01_Directrices_2026.pdf",
+    fileSize: "1.8 MB",
+    compressedSize: "510 KB",
+    ratio: "72%",
     isCompressed: true,
-    uploadedAt: "05/10/2026, 08:30 a. m.",
-    notes: "Documento oficial compartido para todo el cuerpo docente."
+    uploadedAt: "06/10/2026, 08:30 a. m.",
+    notes: "Estimado cuerpo docente: Se socializan los horarios de entrega de planeaciones pedagógicas, fechas de cortes de notas y pautas de acompañamiento en aula para el primer bimestre."
   },
   {
     id: "MG-PRI-003",
@@ -181,10 +188,9 @@ const initialDocuments = [
   }
 ];
 
-// Carga de metadatos desde LocalStorage
 let documents = [];
 try {
-  const stored = localStorage.getItem('galeano_db_clean_records_v5');
+  const stored = localStorage.getItem('galeano_db_clean_records_v6');
   documents = stored ? JSON.parse(stored) : initialDocuments;
 } catch (e) {
   console.warn("Inicializando base de datos local:", e);
@@ -193,7 +199,7 @@ try {
 
 function saveDocuments() {
   try {
-    localStorage.setItem('galeano_db_clean_records_v5', JSON.stringify(documents));
+    localStorage.setItem('galeano_db_clean_records_v6', JSON.stringify(documents));
   } catch (err) {
     alert("Error al actualizar la base de datos.");
   }
@@ -208,6 +214,7 @@ let currentSubjectFilter = "";
 let currentSearch = "";
 let currentView = "cards";
 let processedUploadData = null;
+let currentPreviewDocId = null;
 
 // 5. Elementos del DOM
 const loginScreen = document.getElementById("loginScreen");
@@ -225,6 +232,10 @@ const adminTeacherSection = document.getElementById("adminTeacherSection");
 const labelAllFolders = document.getElementById("labelAllFolders");
 const quotaSummaryDesc = document.getElementById("quotaSummaryDesc");
 const fileQuotaHint = document.getElementById("fileQuotaHint");
+
+const bellBadge = document.getElementById("bellBadge");
+const sidebarInstitucionalBadge = document.getElementById("sidebarInstitucionalBadge");
+const navNotificationBell = document.getElementById("navNotificationBell");
 
 const mainSidebar = document.getElementById("mainSidebar");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
@@ -260,6 +271,15 @@ const docIsPublicCheck = document.getElementById("docIsPublic");
 
 const viewCardsBtn = document.getElementById("viewCards");
 const viewTableBtn = document.getElementById("viewTable");
+
+// Modal de Visualización
+const modalViewDoc = document.getElementById("modalViewDoc");
+const btnCloseViewModal = document.getElementById("btnCloseViewModal");
+const btnDoneView = document.getElementById("btnDoneView");
+const btnDownloadFromView = document.getElementById("btnDownloadFromView");
+const viewDocTitle = document.getElementById("viewDocTitle");
+const viewDocMetaSubtitle = document.getElementById("viewDocMetaSubtitle");
+const viewDocBody = document.getElementById("viewDocBody");
 
 // 6. Autenticación
 function initAuth() {
@@ -326,8 +346,7 @@ function updateUIForUser() {
 
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
-  // Actualizar los textos de cuota
-  quotaSummaryDesc.innerHTML = `Límite por subida: <strong>${currentUser.maxUploadLabel}</strong> (${currentUser.role === 'docente' ? 'Perfil Docente' : 'Rectoría / Admin'}).`;
+  quotaSummaryDesc.innerHTML = `Límite por subida: <strong>${currentUser.maxUploadLabel}</strong> (${currentUser.role === 'docente' ? 'Docente' : 'Rectoría / Admin'}).`;
   fileQuotaHint.textContent = `Límite autorizado para tu cuenta: hasta ${currentUser.maxUploadLabel} por archivo.`;
 
   if (isPrivileged) {
@@ -344,7 +363,7 @@ function updateUIForUser() {
   }
 }
 
-// 7. Eventos & Menú Móvil
+// 7. Eventos & Navegación
 function setupEvents() {
   btnToggleSidebar.addEventListener("click", () => {
     mainSidebar.classList.add("mobile-open");
@@ -358,6 +377,12 @@ function setupEvents() {
 
   btnCloseSidebar.addEventListener("click", closeMobileSidebar);
   sidebarOverlay.addEventListener("click", closeMobileSidebar);
+
+  // Al dar clic en la campana de notificación, lleva directo a la carpeta Institucional
+  navNotificationBell.addEventListener("click", () => {
+    const btnInst = document.querySelector(".folder-btn[data-folder='institucional']");
+    if (btnInst) btnInst.click();
+  });
 
   document.querySelectorAll(".teacher-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -420,19 +445,28 @@ function setupEvents() {
   fileInput.addEventListener("change", handleFileCompressAndSelect);
   btnRemoveFile.addEventListener("click", resetFileInput);
   docForm.addEventListener("submit", handleFormSubmit);
+
+  // Modal Ver Documento
+  btnCloseViewModal.addEventListener("click", closeViewModal);
+  btnDoneView.addEventListener("click", closeViewModal);
+  btnDownloadFromView.addEventListener("click", () => {
+    if (currentPreviewDocId) downloadDoc(currentPreviewDocId);
+  });
+  modalViewDoc.addEventListener("click", (e) => {
+    if (e.target === modalViewDoc) closeViewModal();
+  });
 }
 
-// 8. Validación de Límites y Compresión Segura
+// 8. Compresión Inteligente
 async function handleFileCompressAndSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  // 1. VALIDACIÓN ESTRICTA DEL LÍMITE DE TAMAÑO SEGÚN ROL
   if (file.size > currentUser.maxUploadBytes) {
     if (currentUser.role === "docente") {
-      alert(`⚠️ Archivo demasiado pesado (${formatBytes(file.size)}).\n\nComo docente, tu límite por documento es de 15 MB. Si requieres subir un volumen mayor, por favor solicítaselo a Rectoría (Claudia).`);
+      alert(`⚠️ Archivo demasiado pesado (${formatBytes(file.size)}).\n\nComo docente, tu límite por documento es de 15 MB. Si necesitas subir un volumen mayor, solicítaselo a Rectoría.`);
     } else {
-      alert(`⚠️ Archivo excede el límite máximo institucional permitido de 2 GB (${formatBytes(file.size)}).`);
+      alert(`⚠️ Archivo excede el límite de 2 GB (${formatBytes(file.size)}).`);
     }
     resetFileInput();
     return;
@@ -443,9 +477,6 @@ async function handleFileCompressAndSelect(e) {
   try {
     const origSize = file.size;
 
-    // ESTRATEGIA INTELIGENTE DE COMPRESIÓN:
-    // Si el archivo es menor a 120 MB: Se comprime en tiempo real con JSZip.
-    // Si es un archivo masivo de Rectoría (> 120 MB hasta 2 GB): Se guarda como binario directo para evitar saturar la RAM del navegador.
     if (origSize <= 120 * 1024 * 1024) {
       dropText.textContent = "Comprimiendo archivo al máximo...";
       
@@ -472,7 +503,6 @@ async function handleFileCompressAndSelect(e) {
       selectedFileName.textContent = `${file.name}`;
       compressionStats.textContent = `Optimizado: ${processedUploadData.fileSize} ➔ ${processedUploadData.compressedSize} (Ahorro del ${processedUploadData.ratio})`;
     } else {
-      // Archivo masivo (Rectoría): Almacenamiento directo sin congelar la memoria
       processedUploadData = {
         blobToStore: file,
         originalName: file.name,
@@ -484,11 +514,11 @@ async function handleFileCompressAndSelect(e) {
       };
 
       selectedFileName.textContent = `${file.name}`;
-      compressionStats.textContent = `Archivo masivo verificado: ${processedUploadData.fileSize} (Almacenamiento directo de alta capacidad)`;
+      compressionStats.textContent = `Archivo masivo verificado: ${processedUploadData.fileSize} (Almacenamiento directo)`;
     }
 
     fileSelectedBadge.classList.remove("hidden");
-    dropText.textContent = "¡Archivo validado y listo para guardar!";
+    dropText.textContent = "¡Archivo validado y listo!";
 
   } catch (error) {
     console.error("Error procesando archivo:", error);
@@ -507,16 +537,18 @@ function resetFileInput() {
 // 9. Modal Crear / Editar
 function openModalForCreate() {
   editDocId.value = "";
-  modalTitle.textContent = "Subir Documento a la BD";
+  modalTitle.textContent = "Subir Documento";
   docForm.reset();
   resetFileInput();
 
   if (currentUser.role === "docente") {
     docTeacherSelect.value = currentUser.name;
     docTeacherSelect.disabled = true;
+    document.getElementById("docFolder").value = "planeaciones";
   } else {
     docTeacherSelect.disabled = false;
     docTeacherSelect.value = currentUser.name === "Claudia (Rectora)" ? "Claudia (Rectora)" : "Administrador";
+    document.getElementById("docFolder").value = "institucional";
   }
 
   modalDoc.classList.add("show");
@@ -643,7 +675,7 @@ async function handleFormSubmit(e) {
 
   saveDocuments();
   closeModal();
-  alert(`✅ Documento "${docData.title}" guardado con éxito en la base de datos.`);
+  alert(`✅ Documento "${docData.title}" guardado con éxito.`);
 }
 
 // 11. Eliminar Registro
@@ -661,16 +693,86 @@ window.deleteDoc = async function(id) {
   }
 };
 
-// 12. Descompresión Automática y Descarga del Archivo Original
+// 12. Modal "VER DOCUMENTO" (Lectura y Marcado como Leído estilo WhatsApp)
+window.viewDoc = function(id) {
+  const doc = documents.find(d => d.id === id);
+  if (!doc) return;
+
+  currentPreviewDocId = id;
+
+  // Registrar que este usuario leyó este documento
+  markAsRead(id);
+
+  viewDocTitle.textContent = doc.title;
+  viewDocMetaSubtitle.textContent = `Publicado por: ${doc.teacher} • ${doc.uploadedAt || 'Reciente'}`;
+
+  viewDocBody.innerHTML = `
+    <div class="view-document-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <span class="${getFolderPastelClass(doc.folder)}">${formatFolder(doc.folder)}</span>
+        <span class="tag-pastel-grade">${doc.grade} • ${doc.subject}</span>
+        <code>${doc.id}</code>
+      </div>
+      
+      <div style="margin-top:12px; font-size:0.8rem; color:#475569;">
+        <strong>Archivo Adjunto:</strong> <i class="${getFileIconClass(doc.fileName)}"></i> ${escapeHTML(doc.fileName)} (${doc.compressedSize || doc.fileSize})
+      </div>
+
+      <div class="view-document-text">
+        <strong>Contenido / Observaciones Oficiales:</strong>\n\n${escapeHTML(doc.notes || 'Documento sin notas adicionales. Utiliza el botón de descarga para abrir el archivo completo.')}
+      </div>
+    </div>
+  `;
+
+  modalViewDoc.classList.add("show");
+  renderApp(); // Actualizar las insignias en tiempo real
+};
+
+function closeViewModal() {
+  modalViewDoc.classList.remove("show");
+  currentPreviewDocId = null;
+  renderApp();
+}
+
+function markAsRead(docId) {
+  if (!currentUser) return;
+  const userKey = currentUser.name;
+  if (!readReceipts[userKey]) {
+    readReceipts[userKey] = [];
+  }
+  if (!readReceipts[userKey].includes(docId)) {
+    readReceipts[userKey].push(docId);
+    saveReadReceipts();
+  }
+}
+
+function isDocUnread(doc) {
+  if (!currentUser || currentUser.role === "rectora" || currentUser.role === "admin") {
+    return false; // La rectora y admin no tienen alertas pendientes de sus propios envíos
+  }
+  // Aplica para circulares institucionales o documentos compartidos que NO sean de ella
+  const isTarget = doc.folder === "institucional" || doc.isPublic;
+  const isNotMine = doc.teacher !== currentUser.name;
+  if (isTarget && isNotMine) {
+    const userReads = readReceipts[currentUser.name] || [];
+    return !userReads.includes(doc.id);
+  }
+  return false;
+}
+
+// 13. Descarga de Archivos
 window.downloadDoc = async function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
+
+  // Marcar como leído al descargar también
+  markAsRead(id);
+  renderApp();
 
   try {
     const record = await getFileFromDB(id);
 
     if (record && record.blobData) {
-      // Si fue comprimido: desempacar con JSZip
       if (record.isCompressed) {
         const zip = await JSZip.loadAsync(record.blobData);
         const zipFile = zip.file(record.originalName);
@@ -683,7 +785,6 @@ window.downloadDoc = async function(id) {
           return;
         }
       } else {
-        // Archivo directo masivo: descarga directa
         const url = URL.createObjectURL(record.blobData);
         triggerDownload(url, record.originalName);
         setTimeout(() => URL.revokeObjectURL(url), 1500);
@@ -708,7 +809,7 @@ function triggerDownload(url, filename) {
   document.body.removeChild(a);
 }
 
-// 13. Filtrado
+// 14. Filtrado
 function getFilteredDocuments() {
   if (!currentUser) return [];
 
@@ -717,7 +818,7 @@ function getFilteredDocuments() {
   return documents.filter(doc => {
     if (!isPrivileged) {
       const isMine = doc.teacher === currentUser.name;
-      const isShared = Boolean(doc.isPublic);
+      const isShared = Boolean(doc.isPublic) || doc.folder === "institucional";
       if (!isMine && !isShared) return false;
     }
 
@@ -756,7 +857,7 @@ function getFilteredDocuments() {
   });
 }
 
-// 14. Renderizado
+// 15. Renderizado
 function renderApp() {
   updateCounts();
   updateBreadcrumb();
@@ -778,14 +879,16 @@ function renderApp() {
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
     const fileIcon = getFileIconClass(doc.fileName);
     const folderPastelClass = getFolderPastelClass(doc.folder);
+    const unread = isDocUnread(doc);
 
     return `
-      <article class="doc-card">
+      <article class="doc-card ${unread ? 'card-unread' : ''}">
         <div class="doc-card-header">
           <div class="badges-group">
             <span class="${folderPastelClass}">${formatFolder(doc.folder)}</span>
             <span class="tag-pastel-grade">${doc.grade}</span>
             ${doc.isPublic ? '<span class="tag-pastel-public"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
+            ${unread ? '<span class="tag-unread-dot"><i class="ph-fill ph-circle"></i> Nuevo</span>' : ''}
           </div>
           <div class="doc-meta-subtle">
             <span>${doc.uploadedAt || 'Reciente'}</span>
@@ -823,9 +926,15 @@ function renderApp() {
         </div>
 
         <div class="doc-card-footer">
-          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descargar archivo original">
-            <i class="ph-bold ph-download-simple"></i> Descargar
-          </button>
+          <div class="main-actions-group">
+            <!-- BOTÓN VER DOCUMENTO / CIRCULAR -->
+            <button onclick="viewDoc('${doc.id}')" class="btn-view-action" title="Visualizar circular y marcar como leída">
+              <i class="ph-bold ph-eye"></i> Ver
+            </button>
+            <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descargar archivo original">
+              <i class="ph-bold ph-download-simple"></i> Descargar
+            </button>
+          </div>
           
           <div class="action-buttons">
             ${canEdit ? `
@@ -850,12 +959,14 @@ function renderApp() {
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
     const fileIcon = getFileIconClass(doc.fileName);
     const folderPastelClass = getFolderPastelClass(doc.folder);
+    const unread = isDocUnread(doc);
 
     return `
       <tr>
         <td><code>${doc.id}</code></td>
         <td>
           <strong>${escapeHTML(doc.title)}</strong>
+          ${unread ? ' <span class="tag-unread-dot">Nuevo</span>' : ''}
           ${doc.isPublic ? ' <span class="tag-pastel-public"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
         </td>
         <td><i class="ph ph-user"></i> ${escapeHTML(doc.teacher)}</td>
@@ -864,10 +975,13 @@ function renderApp() {
         <td><span class="${folderPastelClass}">${formatFolder(doc.folder)}</span></td>
         <td><small><i class="ph-bold ph-clock"></i> ${doc.uploadedAt || "Reciente"}</small></td>
         <td>
-          <small><i class="${fileIcon}"></i> ${doc.compressedSize || doc.fileSize} ${doc.ratio ? `(-${doc.ratio})` : ''}</small>
+          <small><i class="${fileIcon}"></i> ${doc.compressedSize || doc.fileSize}</small>
         </td>
         <td>
           <div class="action-buttons">
+            <button class="btn-icon" onclick="viewDoc('${doc.id}')" title="Ver documento">
+              <i class="ph-bold ph-eye"></i>
+            </button>
             <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descargar">
               <i class="ph-bold ph-download-simple"></i>
             </button>
@@ -897,6 +1011,7 @@ function updateBreadcrumb() {
   const folderMap = {
     all: "Todos los Documentos",
     publico: "Compartidos con Todos",
+    institucional: "Institucional & Circulares",
     planeaciones: "Planeaciones",
     calificaciones: "Planillas de Notas",
     talleres: "Guías & Talleres",
@@ -906,13 +1021,13 @@ function updateBreadcrumb() {
   currentPathText.textContent = `${teacherText} • ${folderMap[currentFolderFilter] || currentFolderFilter}`;
 }
 
-// 15. Contadores
+// 16. Contadores y Globos estilo WhatsApp
 function updateCounts() {
   const isPrivileged = currentUser && (currentUser.role === "admin" || currentUser.role === "rectora");
 
   const visibleDocs = isPrivileged 
     ? documents 
-    : documents.filter(d => d.teacher === currentUser.name || d.isPublic);
+    : documents.filter(d => d.teacher === currentUser.name || d.isPublic || d.folder === "institucional");
 
   document.getElementById("count-all-teachers").textContent = visibleDocs.length;
   document.getElementById("count-jessica").textContent = documents.filter(d => d.teacher === "Jessica").length;
@@ -920,17 +1035,35 @@ function updateCounts() {
   document.getElementById("count-elcy").textContent = documents.filter(d => d.teacher === "Elcy").length;
   document.getElementById("count-claudia").textContent = documents.filter(d => d.teacher === "Claudia (Rectora)").length;
   document.getElementById("count-public").textContent = documents.filter(d => d.isPublic).length;
+
+  // CÁLCULO DE DOCUMENTOS INSTITUCIONALES SIN LEER (GLOBO WHATSAPP)
+  let unreadCount = 0;
+  visibleDocs.forEach(d => {
+    if (isDocUnread(d)) unreadCount++;
+  });
+
+  if (unreadCount > 0) {
+    bellBadge.textContent = unreadCount;
+    bellBadge.classList.remove("hidden");
+
+    sidebarInstitucionalBadge.textContent = unreadCount;
+    sidebarInstitucionalBadge.classList.remove("hidden");
+  } else {
+    bellBadge.classList.add("hidden");
+    sidebarInstitucionalBadge.classList.add("hidden");
+  }
 }
 
 // Auxiliares
 function getFolderPastelClass(folderKey) {
   const map = {
+    institucional: "tag-pastel-institucional",
     planeaciones: "tag-pastel-planeaciones",
     calificaciones: "tag-pastel-calificaciones",
     talleres: "tag-pastel-talleres",
     observador: "tag-pastel-observador"
   };
-  return map[folderKey] || "tag-pastel-planeaciones";
+  return map[folderKey] || "tag-pastel-institucional";
 }
 
 function getFileIconClass(fileName) {
@@ -945,6 +1078,7 @@ function getFileIconClass(fileName) {
 
 function formatFolder(key) {
   const map = {
+    institucional: "Institucional & Circulares",
     planeaciones: "Planeaciones",
     calificaciones: "Planillas de Notas",
     talleres: "Guías & Talleres",
