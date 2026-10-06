@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Documental - Gimnasio Martin Galeano</title>
+  <title>Sistema Documental Primaria - Gimnasio Martin Galeano</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +22,7 @@
           <i class="ph-bold ph-graduation-cap"></i>
         </div>
         <h2>Gimnasio Martin Galeano</h2>
-        <p>Módulo de Gestión Documental & Base de Datos</p>
+        <p>Módulo Documental • Básica Primaria</p>
       </div>
 
       <form id="loginForm" class="login-form">
@@ -30,18 +30,20 @@
           <label for="loginUserSelect">Seleccione usuario</label>
           <select id="loginUserSelect" required>
             <option value="" disabled selected>-- Seleccione su cuenta --</option>
-            <option value="admin">Administrador</option>
             <option value="claudia">Claudia (Rectora)</option>
             <option value="jessica">Jessica</option>
             <option value="yuri">Yuri</option>
             <option value="elcy">Elcy</option>
+            <option value="admin">Administrador</option>
           </select>
         </div>
 
         <div class="form-group">
           <label for="loginPassword">Contraseña</label>
-          <input type="password" id="loginPassword" value="1234" placeholder="Ingrese contraseña">
-          <small class="helper-text">Clave de demostración: <code>1234</code></small>
+          <input type="password" id="loginPassword" placeholder="Ingrese contraseña" required>
+          <small class="helper-text">
+            Claves: <code>rectora2026</code>, <code>jessica2026</code>, <code>yuri2026</code>, <code>elcy2026</code>, <code>admin2026</code>
+          </small>
         </div>
 
         <button type="submit" class="btn btn-primary btn-block">
@@ -62,7 +64,7 @@
         </div>
         <div>
           <h1>Gimnasio Martin Galeano</h1>
-          <p class="subtitle" id="topSubtitle">Gestión Documental Escolar</p>
+          <p class="subtitle" id="topSubtitle">Gestión Documental Primaria</p>
         </div>
       </div>
 
@@ -189,7 +191,7 @@
         <section class="filters-bar">
           <div class="search-box">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="searchInput" placeholder="Buscar por título, archivo o tema...">
+            <input type="text" id="searchInput" placeholder="Buscar por título, archivo, fecha o tema...">
           </div>
 
           <div class="filter-group">
@@ -232,10 +234,10 @@
                 <th>ID Ref</th>
                 <th>Documento</th>
                 <th>Docente</th>
-                <th>Grado</th>
-                <th>Materia</th>
+                <th>Grado / Materia</th>
+                <th>Fecha y Hora</th>
                 <th>Ubicación</th>
-                <th>Archivo</th>
+                <th>Archivo Original</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -246,7 +248,7 @@
         <div id="emptyState" class="empty-state hidden">
           <i class="ph-duotone ph-folder-open"></i>
           <h3>No se encontraron registros</h3>
-          <p>No tienes archivos en este filtro o la carpeta compartida está vacía.</p>
+          <p>No tienes archivos en este filtro o la carpeta seleccionada está vacía.</p>
         </div>
 
       </main>
@@ -261,7 +263,7 @@
           <div class="modal-icon"><i class="ph-bold ph-cloud-arrow-up"></i></div>
           <div>
             <h3 id="modalTitle">Subir Documento</h3>
-            <p>Guarda y clasifica el documento en la base de datos</p>
+            <p>Guarda el archivo original en la base de datos local</p>
           </div>
         </div>
         <button class="btn-close" id="btnCloseModal"><i class="ph-bold ph-x"></i></button>
@@ -271,23 +273,23 @@
         <input type="hidden" id="editDocId">
 
         <div class="form-group" id="fileGroupContainer">
-          <label>Archivo a Subir *</label>
+          <label>Archivo Original a Subir *</label>
           <div class="file-dropzone" id="dropzone">
             <i class="ph-duotone ph-file-arrow-up"></i>
             <p class="drop-text" id="dropText">Clic o arrastra el archivo aquí</p>
-            <span class="file-hint">PDF, Word, Excel, PowerPoint (Cualquier tamaño admitido)</span>
+            <span class="file-hint">Excel (.xlsx), PDF (.pdf), Word (.docx), PowerPoint, etc.</span>
             <input type="file" id="fileInput" class="file-hidden-input">
           </div>
           <div id="fileSelectedBadge" class="file-selected-badge hidden">
             <i class="ph-bold ph-file-check"></i>
-            <span id="selectedFileName">archivo.pdf</span>
+            <span id="selectedFileName">archivo.xlsx</span>
             <button type="button" id="btnRemoveFile" class="btn-remove-file"><i class="ph-bold ph-x"></i></button>
           </div>
         </div>
 
         <div class="form-group">
           <label for="docTitle">Título del Documento *</label>
-          <input type="text" id="docTitle" required placeholder="Ej: Planeación Didáctica Matemáticas">
+          <input type="text" id="docTitle" required placeholder="Ej: Planilla Consolidada de Notas">
         </div>
 
         <div class="form-grid-3">
@@ -360,8 +362,8 @@
             <input type="checkbox" id="docIsPublic">
             <span class="checkmark"></span>
             <div class="checkbox-label">
-              <strong> Compartir con todos los profesores</strong>
-              <small>Si marcas esta casilla, aparecerá en la carpeta pública accesible para todo el colegio.</small>
+              <strong>📢 Compartir con todos los profesores</strong>
+              <small>Aparecerá en la carpeta pública para que cualquiera lo pueda descargar.</small>
             </div>
           </label>
         </div>

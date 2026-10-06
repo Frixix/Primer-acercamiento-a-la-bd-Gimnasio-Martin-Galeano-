@@ -1,6 +1,8 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * VERSIÓN CORREGIDA: Acceso total para Rectora (Claudia) y Admin sin bloqueos de filtros
+ * - Guardado de fecha y hora exacta de subida
+ * - Almacenamiento binario persistente en IndexedDB (archivos reales .xlsx, .pdf, .docx)
+ * - Descarga exacta del archivo subido sin conversiones a .txt
  */
 
 // 1. Usuarios Oficiales con Claves
@@ -14,10 +16,60 @@ const USERS = {
 
 let currentUser = null;
 
-// Almacén en memoria de archivos binarios subidos en la sesión
-const sessionFilesMap = {};
+// ==========================================
+// 2. MOTOR DE ALMACENAMIENTO INDEXEDDB PARA ARCHIVOS REALES
+// ==========================================
+const DB_NAME = "GaleanoFileDB";
+const STORE_NAME = "real_files";
 
-// 2. Base de datos inicial de demostración
+function openIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveFileToIndexedDB(id, fileBlob, fileName, fileType) {
+  const db = await openIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    store.put({ id, fileBlob, fileName, fileType });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getFileFromIndexedDB(id) {
+  const db = await openIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteFileFromIndexedDB(id) {
+  const db = await openIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    store.delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// 3. Base de datos inicial con Fecha y Hora de registro
 const initialDocuments = [
   {
     id: "MG-PRI-001",
@@ -30,6 +82,7 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Planeacion_Matematicas_3_Jessica.pdf",
     fileSize: "1.4 MB",
+    uploadedAt: "05/10/2026, 09:15 a. m.",
     notes: "Planeación bimestral propia del grado tercero."
   },
   {
@@ -43,6 +96,7 @@ const initialDocuments = [
     isPublic: true,
     fileName: "Manual_Convivencia_Galeano_2026.pdf",
     fileSize: "3.2 MB",
+    uploadedAt: "05/10/2026, 08:30 a. m.",
     notes: "Documento oficial compartido para todo el cuerpo docente."
   },
   {
@@ -56,6 +110,7 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Taller_Ciencias_4_Yuri.docx",
     fileSize: "680 KB",
+    uploadedAt: "05/10/2026, 11:40 a. m.",
     notes: "Guías con actividades prácticas para laboratorio escolar."
   },
   {
@@ -69,11 +124,12 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Planilla_Espanol_1_Elcy.xlsx",
     fileSize: "512 KB",
+    uploadedAt: "05/10/2026, 02:10 p. m.",
     notes: "Valoración formativa de trazo y comprensión de fonemas."
   }
 ];
 
-// Carga segura y persistente desde LocalStorage
+// Carga de metadatos desde LocalStorage
 let documents = [];
 try {
   const stored = localStorage.getItem('galeano_db_clean_records');
@@ -87,12 +143,12 @@ function saveDocuments() {
   try {
     localStorage.setItem('galeano_db_clean_records', JSON.stringify(documents));
   } catch (err) {
-    alert("Error de espacio en el navegador al guardar.");
+    alert("Error al actualizar la base de datos.");
   }
   renderApp();
 }
 
-// 3. Variables de Estado de Filtros
+// 4. Variables de Estado de Filtros
 let currentTeacherFilter = "all";
 let currentFolderFilter = "all";
 let currentGradeFilter = "";
@@ -101,7 +157,7 @@ let currentSearch = "";
 let currentView = "cards";
 let uploadedFileMeta = null;
 
-// 4. Elementos del DOM
+// 5. Elementos del DOM
 const loginScreen = document.getElementById("loginScreen");
 const appContainer = document.getElementById("appContainer");
 const loginForm = document.getElementById("loginForm");
@@ -146,7 +202,7 @@ const docIsPublicCheck = document.getElementById("docIsPublic");
 const viewCardsBtn = document.getElementById("viewCards");
 const viewTableBtn = document.getElementById("viewTable");
 
-// 5. Inicialización de Sesión
+// 6. Autenticación
 function initAuth() {
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -161,7 +217,7 @@ function initAuth() {
     const expectedUser = USERS[userKey];
 
     if (enteredPass !== expectedUser.pass) {
-      alert(`Contraseña incorrecta para ${expectedUser.name}.\n\nPor favor verifica tu clave institucional.`);
+      alert(`Contraseña incorrecta para ${expectedUser.name}.`);
       loginPasswordInput.value = "";
       loginPasswordInput.focus();
       return;
@@ -172,9 +228,7 @@ function initAuth() {
     appContainer.classList.remove("hidden");
     loginPasswordInput.value = "";
 
-    // RESETEAR COMPLETAMENTE LOS FILTROS AL INICIAR SESIÓN
     resetAllFiltersToDefault();
-
     updateUIForUser();
     renderApp();
   });
@@ -198,7 +252,6 @@ function resetAllFiltersToDefault() {
   if (gradeFilter) gradeFilter.value = "";
   if (subjectFilter) subjectFilter.value = "";
 
-  // Resetear clases visuales de los botones
   document.querySelectorAll(".teacher-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.teacher === "all");
   });
@@ -218,7 +271,7 @@ function updateUIForUser() {
     adminTeacherSection.classList.remove("hidden");
     labelAllFolders.textContent = "Todos los Documentos";
     topSubtitle.textContent = `Panel Directivo • ${currentUser.name}`;
-    roleDescription.innerHTML = `<strong>Supervisión Total:</strong> Puedes consultar, descargar y revisar absolutamente todos los documentos de las docentes.`;
+    roleDescription.innerHTML = `<strong>Supervisión Total:</strong> Puedes consultar, descargar y revisar absolutamente todos los documentos de las docentes con su fecha exacta.`;
     docTeacherSelect.disabled = false;
   } else {
     adminTeacherSection.classList.add("hidden");
@@ -230,9 +283,8 @@ function updateUIForUser() {
   }
 }
 
-// 6. Configurar Eventos
+// 7. Eventos de la Interfaz
 function setupEvents() {
-  // Filtro por Docente (Admin y Rectora)
   document.querySelectorAll(".teacher-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".teacher-btn").forEach(b => b.classList.remove("active"));
@@ -242,7 +294,6 @@ function setupEvents() {
     });
   });
 
-  // Filtro por Carpeta
   document.querySelectorAll(".folder-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".folder-btn").forEach(b => b.classList.remove("active"));
@@ -295,7 +346,7 @@ function setupEvents() {
   docForm.addEventListener("submit", handleFormSubmit);
 }
 
-// 7. Modal Crear y Editar
+// 8. Modal Crear y Editar
 function openModalForCreate() {
   editDocId.value = "";
   modalTitle.textContent = "Subir Documento a la BD";
@@ -340,7 +391,7 @@ window.editDoc = function(id) {
   uploadedFileMeta = {
     name: doc.fileName,
     size: doc.fileSize,
-    rawFile: sessionFilesMap[doc.id] || null
+    rawFile: null
   };
 
   selectedFileName.textContent = `${doc.fileName} (${doc.fileSize})`;
@@ -363,7 +414,7 @@ function handleFileSelect(e) {
   uploadedFileMeta = {
     name: file.name,
     size: formatBytes(file.size),
-    rawFile: file
+    rawFile: file // Retenemos el archivo original en memoria
   };
 
   selectedFileName.textContent = `${file.name} (${uploadedFileMeta.size})`;
@@ -378,19 +429,22 @@ function resetFileInput() {
   dropText.textContent = "Clic o arrastra el archivo aquí";
 }
 
-// 8. Guardado de Documentos
-function handleFormSubmit(e) {
+// 9. Guardado con FECHA, HORA y ARCHIVO REAL EN INDEXEDDB
+async function handleFormSubmit(e) {
   e.preventDefault();
 
   const isEditing = Boolean(editDocId.value);
 
-  if (!uploadedFileMeta && !isEditing) {
-    uploadedFileMeta = {
-      name: "Documento_Academico_" + Date.now().toString().slice(-4) + ".pdf",
-      size: "1.2 MB",
-      rawFile: null
-    };
-  }
+  // Fecha y hora formateada en español
+  const now = new Date();
+  const formattedDateTime = now.toLocaleString("es-CO", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
 
   const assignedTeacher = (currentUser.role === "docente") 
     ? currentUser.name 
@@ -411,37 +465,51 @@ function handleFormSubmit(e) {
     const docIndex = documents.findIndex(d => d.id === editDocId.value);
     if (docIndex !== -1) {
       documents[docIndex] = { ...documents[docIndex], ...docData };
-      if (uploadedFileMeta) {
+      if (uploadedFileMeta && uploadedFileMeta.rawFile) {
         documents[docIndex].fileName = uploadedFileMeta.name;
         documents[docIndex].fileSize = uploadedFileMeta.size;
-        if (uploadedFileMeta.rawFile) {
-          sessionFilesMap[documents[docIndex].id] = uploadedFileMeta.rawFile;
-        }
+        // Guardamos el nuevo archivo en IndexedDB
+        await saveFileToIndexedDB(
+          documents[docIndex].id, 
+          uploadedFileMeta.rawFile, 
+          uploadedFileMeta.name, 
+          uploadedFileMeta.rawFile.type
+        );
       }
     }
   } else {
+    if (!uploadedFileMeta || !uploadedFileMeta.rawFile) {
+      alert("Por favor selecciona un archivo (Excel, PDF, Word, etc.) para subir.");
+      return;
+    }
+
     const newId = "MG-PRI-" + String(documents.length + 1).padStart(3, '0');
     const newDoc = {
       id: newId,
       ...docData,
       fileName: uploadedFileMeta.name,
-      fileSize: uploadedFileMeta.size
+      fileSize: uploadedFileMeta.size,
+      uploadedAt: formattedDateTime // Fecha y hora exacta registrada
     };
 
-    if (uploadedFileMeta.rawFile) {
-      sessionFilesMap[newId] = uploadedFileMeta.rawFile;
-    }
+    // Guardar el archivo real binario en IndexedDB (no se borra al recargar)
+    await saveFileToIndexedDB(
+      newId, 
+      uploadedFileMeta.rawFile, 
+      uploadedFileMeta.name, 
+      uploadedFileMeta.rawFile.type
+    );
 
     documents.unshift(newDoc);
   }
 
   saveDocuments();
   closeModal();
-  alert(`✅ Documento "${docData.title}" guardado correctamente.`);
+  alert(`✅ Documento "${docData.title}" guardado exitosamente.\nRegistrado el: ${formattedDateTime}`);
 }
 
-// 9. Eliminar Registro
-window.deleteDoc = function(id) {
+// 10. Eliminar Registro y Archivo
+window.deleteDoc = async function(id) {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
   if (!isPrivileged) {
     alert("Acción restringida: Como docente no tienes permisos para eliminar registros. Solo Rectoría o el Administrador pueden suprimir datos.");
@@ -450,54 +518,35 @@ window.deleteDoc = function(id) {
 
   if (confirm(`¿Confirmas la eliminación del documento con ID ${id}?`)) {
     documents = documents.filter(d => d.id !== id);
-    delete sessionFilesMap[id];
+    await deleteFileFromIndexedDB(id);
     saveDocuments();
   }
 };
 
-// 10. Función Universal de Descarga
-window.downloadDoc = function(id) {
+// 11. DESCARGA EXACTA DEL ARCHIVO SUBIDO (SIN CONVERTIR A .TXT)
+window.downloadDoc = async function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
 
-  if (sessionFilesMap[id]) {
-    const file = sessionFilesMap[id];
-    const url = URL.createObjectURL(file);
-    triggerDownload(url, doc.fileName);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return;
+  try {
+    // 1. Buscamos el archivo real binario en IndexedDB
+    const storedFile = await getFileFromIndexedDB(id);
+
+    if (storedFile && storedFile.fileBlob) {
+      // Descargamos el archivo exacto con su extensión real (.xlsx, .pdf, .docx, etc.)
+      const url = URL.createObjectURL(storedFile.fileBlob);
+      triggerDownload(url, storedFile.fileName || doc.fileName);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      return;
+    }
+
+    // 2. Si es uno de los registros de prueba precargados inicialmente:
+    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real (por ejemplo un .xlsx o .docx) y al hacer clic en este botón se descargará exactamente el archivo que subiste.`);
+
+  } catch (error) {
+    console.error("Error al acceder a IndexedDB:", error);
+    alert("Hubo un problema al recuperar el archivo original.");
   }
-
-  const fileContent = `=====================================================
-GIMNASIO MARTIN GALEANO - BÁSICA PRIMARIA
-SISTEMA DE GESTIÓN DOCUMENTAL INSTITUCIONAL
-=====================================================
-
-DATOS DEL REGISTRO ACADÉMICO:
-• Identificador Único: ${doc.id}
-• Título del Documento: ${doc.title}
-• Docente Responsable: ${doc.teacher}
-• Grado Escolar: ${doc.grade}
-• Asignatura / Materia: ${doc.subject}
-• Categoría: ${formatFolder(doc.folder)}
-• Periodo Académico: ${doc.period}
-• Visibilidad: ${doc.isPublic ? "PÚBLICO (Compartido con todos)" : "PRIVADO DOCENTE"}
-• Archivo Asociado: ${doc.fileName} (${doc.fileSize})
-
-DESCRIPCIÓN Y OBSERVACIONES:
-${doc.notes || "Sin observaciones adicionales registradas."}
-
------------------------------------------------------
-Documento emitido y validado por la plataforma escolar
-Gimnasio Martin Galeano - Ciclo Escolar 2026
-=====================================================`;
-
-  const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const downloadName = doc.fileName.endsWith('.txt') ? doc.fileName : `${doc.fileName}.txt`;
-
-  triggerDownload(url, downloadName);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 function triggerDownload(url, filename) {
@@ -509,45 +558,43 @@ function triggerDownload(url, filename) {
   document.body.removeChild(a);
 }
 
-// 11. FILTRADO CON LÓGICA CORREGIDA (RECTORA Y ADMIN TIENEN VISIBILIDAD TOTAL)
+// 12. Filtrado
 function getFilteredDocuments() {
   if (!currentUser) return [];
 
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
   return documents.filter(doc => {
-    // 1. REGLA DE PRIVACIDAD:
-    // Si es Rectora o Admin: TIENEN ACCESO A ABSOLUTAMENTE TODO (público o privado de cualquier profe).
-    // Si es docente: solo sus archivos O los que sean públicos.
+    // Regla de Privacidad
     if (!isPrivileged) {
       const isMine = doc.teacher === currentUser.name;
       const isShared = Boolean(doc.isPublic);
       if (!isMine && !isShared) return false;
     }
 
-    // 2. FILTRO POR DOCENTE (Barra lateral para Rectora/Admin)
+    // Filtro por Docente
     if (isPrivileged && currentTeacherFilter !== "all") {
       if (doc.teacher !== currentTeacherFilter) return false;
     }
 
-    // 3. FILTRO POR CARPETA
+    // Filtro por Carpeta
     if (currentFolderFilter === "publico") {
       if (!doc.isPublic) return false;
     } else if (currentFolderFilter !== "all") {
       if (doc.folder !== currentFolderFilter) return false;
     }
 
-    // 4. FILTRO POR GRADO
+    // Filtro por Grado
     if (currentGradeFilter && doc.grade !== currentGradeFilter) {
       return false;
     }
 
-    // 5. FILTRO POR MATERIA
+    // Filtro por Materia
     if (currentSubjectFilter && doc.subject !== currentSubjectFilter) {
       return false;
     }
 
-    // 6. BUSCADOR
+    // Buscador
     if (currentSearch) {
       const q = currentSearch;
       const match = 
@@ -556,6 +603,7 @@ function getFilteredDocuments() {
         (doc.subject && doc.subject.toLowerCase().includes(q)) ||
         (doc.fileName && doc.fileName.toLowerCase().includes(q)) ||
         (doc.id && doc.id.toLowerCase().includes(q)) ||
+        (doc.uploadedAt && doc.uploadedAt.toLowerCase().includes(q)) ||
         (doc.notes && doc.notes.toLowerCase().includes(q));
       if (!match) return false;
     }
@@ -564,7 +612,7 @@ function getFilteredDocuments() {
   });
 }
 
-// 12. Renderizado de Interfaz
+// 13. Renderizado de Interfaz
 function renderApp() {
   updateCounts();
   updateBreadcrumb();
@@ -584,6 +632,7 @@ function renderApp() {
   documentsContainer.innerHTML = filtered.map(doc => {
     const canDelete = isPrivileged;
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
+    const fileIcon = getFileIconClass(doc.fileName);
 
     return `
       <article class="doc-card">
@@ -607,8 +656,12 @@ function renderApp() {
             <i class="ph-bold ph-chalkboard-teacher"></i>
             <span>${doc.grade} • ${doc.period}</span>
           </div>
+          <div class="doc-meta-item doc-meta-time">
+            <i class="ph-bold ph-clock"></i>
+            <span>Subido: ${doc.uploadedAt || "Reciente"}</span>
+          </div>
           <div class="file-attachment-badge">
-            <i class="ph-bold ph-paperclip"></i>
+            <i class="${fileIcon}"></i>
             <span>${escapeHTML(doc.fileName)} <small>(${doc.fileSize})</small></span>
           </div>
           ${doc.notes ? `
@@ -620,7 +673,7 @@ function renderApp() {
         </div>
 
         <div class="doc-card-footer">
-          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descargar este archivo">
+          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descargar archivo original">
             <i class="ph-bold ph-download-simple"></i> Descargar Archivo
           </button>
           
@@ -645,6 +698,7 @@ function renderApp() {
   tableBody.innerHTML = filtered.map(doc => {
     const canDelete = isPrivileged;
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
+    const fileIcon = getFileIconClass(doc.fileName);
 
     return `
       <tr>
@@ -654,10 +708,10 @@ function renderApp() {
           ${doc.isPublic ? ' <span class="doc-public-tag"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
         </td>
         <td><i class="ph ph-user"></i> ${escapeHTML(doc.teacher)}</td>
-        <td>${doc.grade}</td>
-        <td><span class="doc-subject-tag">${escapeHTML(doc.subject)}</span></td>
+        <td>${doc.grade} • <span class="doc-subject-tag">${escapeHTML(doc.subject)}</span></td>
+        <td><small><i class="ph-bold ph-clock"></i> ${doc.uploadedAt || "Reciente"}</small></td>
         <td><span class="doc-tag">${formatFolder(doc.folder)}</span></td>
-        <td><small>${escapeHTML(doc.fileName)}</small></td>
+        <td><small><i class="${fileIcon}"></i> ${escapeHTML(doc.fileName)}</small></td>
         <td>
           <div class="action-buttons">
             <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descargar">
@@ -698,11 +752,10 @@ function updateBreadcrumb() {
   currentPathText.textContent = `${teacherText} • ${folderMap[currentFolderFilter] || currentFolderFilter}`;
 }
 
-// 13. Actualización de Contadores Dinámicos Reales
+// 14. Actualización de Contadores
 function updateCounts() {
   const isPrivileged = currentUser && (currentUser.role === "admin" || currentUser.role === "rectora");
 
-  // Conteo base según permisos
   const visibleDocs = isPrivileged 
     ? documents 
     : documents.filter(d => d.teacher === currentUser.name || d.isPublic);
@@ -715,7 +768,17 @@ function updateCounts() {
   document.getElementById("count-public").textContent = documents.filter(d => d.isPublic).length;
 }
 
-// Funciones Auxiliares
+// Auxiliares
+function getFileIconClass(fileName) {
+  if (!fileName) return "ph-bold ph-file";
+  const ext = fileName.split('.').pop().toLowerCase();
+  if (['xlsx', 'xls', 'csv'].includes(ext)) return "ph-bold ph-file-xls";
+  if (['pdf'].includes(ext)) return "ph-bold ph-file-pdf";
+  if (['doc', 'docx'].includes(ext)) return "ph-bold ph-file-doc";
+  if (['ppt', 'pptx'].includes(ext)) return "ph-bold ph-presentation";
+  return "ph-bold ph-file";
+}
+
 function formatFolder(key) {
   const map = {
     planeaciones: "Planeaciones",

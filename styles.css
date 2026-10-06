@@ -88,6 +88,7 @@ body {
 .helper-text {
   font-size: 0.725rem;
   color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .helper-text code {
@@ -95,6 +96,7 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
   color: var(--primary);
+  font-weight: 600;
 }
 
 /* Navbar */
@@ -255,7 +257,6 @@ body {
   color: var(--primary-light);
 }
 
-/* Botón especial para carpeta pública */
 .public-folder-btn i {
   color: var(--public-green) !important;
 }
@@ -510,15 +511,25 @@ select {
   gap: 6px;
 }
 
+.doc-meta-time {
+  color: #0369a1;
+  font-weight: 600;
+}
+
 .file-attachment-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   background-color: var(--surface-alt);
   border-radius: 6px;
   font-size: 0.75rem;
   margin-top: 4px;
+  border: 1px solid var(--border);
+}
+
+.file-attachment-badge i {
+  font-size: 1.1rem;
 }
 
 .doc-card-footer {
@@ -558,13 +569,20 @@ select {
 .btn-download-action {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--primary-light);
-  background: none;
+  color: #ffffff;
+  background-color: var(--primary-light);
   border: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.btn-download-action:hover {
+  background-color: var(--primary);
 }
 
 /* Tabla */
@@ -694,7 +712,6 @@ select {
   gap: 0.75rem;
 }
 
-/* Checkbox bonito para compartir */
 .form-group-checkbox {
   background-color: #f0fdf4;
   border: 1px solid #bbf7d0;
