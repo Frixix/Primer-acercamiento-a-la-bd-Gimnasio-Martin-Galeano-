@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Documental Primaria - Gimnasio Martin Galeano</title>
+  <title>Sistema Documental - Gimnasio Martin Galeano</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,26 +22,26 @@
           <i class="ph-bold ph-graduation-cap"></i>
         </div>
         <h2>Gimnasio Martin Galeano</h2>
-        <p>Módulo de Gestión Documental • Básica Primaria</p>
+        <p>Módulo de Gestión Documental & Base de Datos</p>
       </div>
 
       <form id="loginForm" class="login-form">
         <div class="form-group">
-          <label for="loginUserSelect">Seleccione su usuario de acceso</label>
+          <label for="loginUserSelect">Seleccione usuario</label>
           <select id="loginUserSelect" required>
-            <option value="" disabled selected>-- Elija un perfil --</option>
-            <option value="admin">Administrador (Control Total)</option>
-            <option value="claudia">Claudia (Rectora - Privilegio Total)</option>
-            <option value="jessica">Jessica (Docente de Primaria)</option>
-            <option value="yuri">Yuri (Docente de Primaria)</option>
-            <option value="elcy">Elcy (Docente de Primaria)</option>
+            <option value="" disabled selected>-- Seleccione su cuenta --</option>
+            <option value="admin">Administrador</option>
+            <option value="claudia">Claudia (Rectora)</option>
+            <option value="jessica">Jessica</option>
+            <option value="yuri">Yuri</option>
+            <option value="elcy">Elcy</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="loginPassword">Contraseña de acceso rápido</label>
+          <label for="loginPassword">Contraseña</label>
           <input type="password" id="loginPassword" value="1234" placeholder="Ingrese contraseña">
-          <small class="helper-text">Clave de demostración precargada: <code>1234</code></small>
+          <small class="helper-text">Clave de demostración: <code>1234</code></small>
         </div>
 
         <button type="submit" class="btn btn-primary btn-block">
@@ -51,7 +51,7 @@
     </div>
   </div>
 
-  <!-- APLICACIÓN PRINCIPAL (OCULTA HASTA AUTENTICARSE) -->
+  <!-- APLICACIÓN PRINCIPAL -->
   <div id="appContainer" class="hidden">
     
     <!-- Navbar -->
@@ -62,7 +62,7 @@
         </div>
         <div>
           <h1>Gimnasio Martin Galeano</h1>
-          <p class="subtitle">Básica Primaria • Organización por Docente, Grado y Materia</p>
+          <p class="subtitle" id="topSubtitle">Gestión Documental Escolar</p>
         </div>
       </div>
 
@@ -84,29 +84,25 @@
     </header>
 
     <div class="app-layout">
-      <!-- Barra lateral con filtros por Docente -->
+      <!-- Barra lateral -->
       <aside class="sidebar">
         
-        <div class="sidebar-section">
+        <!-- Bloque exclusivo para Administrador y Rectora -->
+        <div class="sidebar-section" id="adminTeacherSection">
           <div class="sidebar-header">
             <i class="ph-bold ph-users"></i>
-            <span>Equipo Docente</span>
+            <span>Ver por Docente</span>
           </div>
           <nav class="teacher-list" id="teacherNav">
             <button class="teacher-btn active" data-teacher="all">
               <i class="ph-fill ph-users-three"></i>
-              <span>Todos los docentes</span>
+              <span>Todos los documentos</span>
               <span class="count-badge" id="count-all-teachers">0</span>
             </button>
             <button class="teacher-btn" data-teacher="Jessica">
               <i class="ph-bold ph-user"></i>
               <span>Jessica</span>
               <span class="count-badge" id="count-jessica">0</span>
-            </button>
-            <button class="teacher-btn" data-teacher="Claudia (Rectora)">
-              <i class="ph-bold ph-crown"></i>
-              <span>Claudia (Rectora)</span>
-              <span class="count-badge" id="count-claudia">0</span>
             </button>
             <button class="teacher-btn" data-teacher="Yuri">
               <i class="ph-bold ph-user"></i>
@@ -118,18 +114,28 @@
               <span>Elcy</span>
               <span class="count-badge" id="count-elcy">0</span>
             </button>
+            <button class="teacher-btn" data-teacher="Claudia (Rectora)">
+              <i class="ph-bold ph-crown"></i>
+              <span>Claudia (Rectora)</span>
+              <span class="count-badge" id="count-claudia">0</span>
+            </button>
           </nav>
         </div>
 
         <div class="sidebar-section">
           <div class="sidebar-header">
             <i class="ph-bold ph-folder"></i>
-            <span>Categorías</span>
+            <span>Ubicación / Rutas</span>
           </div>
           <nav class="folder-list">
             <button class="folder-btn active" data-folder="all">
               <i class="ph-fill ph-folders"></i>
-              <span>Todas las carpetas</span>
+              <span id="labelAllFolders">Mis Documentos</span>
+            </button>
+            <button class="folder-btn public-folder-btn" data-folder="publico">
+              <i class="ph-bold ph-globe"></i>
+              <span>Compartidos con Todos</span>
+              <span class="count-badge badge-pub" id="count-public">0</span>
             </button>
             <button class="folder-btn" data-folder="planeaciones">
               <i class="ph-duotone ph-notebook"></i>
@@ -152,8 +158,8 @@
 
         <div class="db-summary-card">
           <div class="summary-title">
-            <i class="ph-bold ph-database"></i>
-            <span>Control de Acceso</span>
+            <i class="ph-bold ph-shield-check"></i>
+            <span>Nivel de Privacidad</span>
           </div>
           <p class="summary-desc" id="roleDescription">Cargando permisos...</p>
         </div>
@@ -164,9 +170,9 @@
         
         <div class="breadcrumb-container">
           <div class="breadcrumb">
-            <span><i class="ph ph-hard-drive"></i> MartinGaleano</span>
+            <span><i class="ph ph-hard-drive"></i> Unidad_MG</span>
             <i class="ph ph-caret-right separator"></i>
-            <span class="current-path" id="currentPathText">Docente: Todos • Categoría: Todas</span>
+            <span class="current-path" id="currentPathText">Cargando ruta...</span>
           </div>
           
           <div class="view-toggles">
@@ -179,11 +185,11 @@
           </div>
         </div>
 
-        <!-- Filtros Combinados: Búsqueda, Grado y Materia -->
+        <!-- Filtros: Búsqueda, Grado y Materia -->
         <section class="filters-bar">
           <div class="search-box">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="searchInput" placeholder="Buscar por título, archivo, código o notas...">
+            <input type="text" id="searchInput" placeholder="Buscar por título, archivo o tema...">
           </div>
 
           <div class="filter-group">
@@ -195,7 +201,7 @@
               <option value="Tercero (3°)">Grado 3°</option>
               <option value="Cuarto (4°)">Grado 4°</option>
               <option value="Quinto (5°)">Grado 5°</option>
-              <option value="Primaria General">General Primaria</option>
+              <option value="General">General / Institucional</option>
             </select>
           </div>
 
@@ -210,15 +216,15 @@
               <option value="Educación Artística">Educación Artística</option>
               <option value="Ética y Valores">Ética y Valores</option>
               <option value="Tecnología e Informática">Tecnología e Informática</option>
-              <option value="Institucional / Dirección">Institucional / Dirección</option>
+              <option value="Institucional">Institucional</option>
             </select>
           </div>
         </section>
 
-        <!-- Tarjetas -->
+        <!-- Contenedor Tarjetas -->
         <section id="documentsContainer" class="cards-grid"></section>
 
-        <!-- Tabla -->
+        <!-- Contenedor Tabla -->
         <section id="tableContainer" class="table-wrapper hidden">
           <table class="db-table">
             <thead>
@@ -228,7 +234,7 @@
                 <th>Docente</th>
                 <th>Grado</th>
                 <th>Materia</th>
-                <th>Carpeta</th>
+                <th>Ubicación</th>
                 <th>Archivo</th>
                 <th>Acciones</th>
               </tr>
@@ -240,7 +246,7 @@
         <div id="emptyState" class="empty-state hidden">
           <i class="ph-duotone ph-folder-open"></i>
           <h3>No se encontraron registros</h3>
-          <p>Prueba ajustando los filtros de docente, grado o materia.</p>
+          <p>No tienes archivos en este filtro o la carpeta compartida está vacía.</p>
         </div>
 
       </main>
@@ -252,10 +258,10 @@
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <div class="modal-icon"><i class="ph-bold ph-file-plus"></i></div>
+          <div class="modal-icon"><i class="ph-bold ph-cloud-arrow-up"></i></div>
           <div>
             <h3 id="modalTitle">Subir Documento</h3>
-            <p>Clasificación por Grado, Docente y Materia</p>
+            <p>Guarda y clasifica el documento en la base de datos</p>
           </div>
         </div>
         <button class="btn-close" id="btnCloseModal"><i class="ph-bold ph-x"></i></button>
@@ -265,11 +271,11 @@
         <input type="hidden" id="editDocId">
 
         <div class="form-group" id="fileGroupContainer">
-          <label>Archivo Adjunto *</label>
+          <label>Archivo a Subir *</label>
           <div class="file-dropzone" id="dropzone">
             <i class="ph-duotone ph-file-arrow-up"></i>
             <p class="drop-text" id="dropText">Clic o arrastra el archivo aquí</p>
-            <span class="file-hint">PDF, Word, Excel, PowerPoint (Máx 5MB)</span>
+            <span class="file-hint">PDF, Word, Excel, PowerPoint (Cualquier tamaño admitido)</span>
             <input type="file" id="fileInput" class="file-hidden-input">
           </div>
           <div id="fileSelectedBadge" class="file-selected-badge hidden">
@@ -281,17 +287,18 @@
 
         <div class="form-group">
           <label for="docTitle">Título del Documento *</label>
-          <input type="text" id="docTitle" required placeholder="Ej: Planeación Didáctica Fracciones">
+          <input type="text" id="docTitle" required placeholder="Ej: Planeación Didáctica Matemáticas">
         </div>
 
         <div class="form-grid-3">
           <div class="form-group">
-            <label for="docTeacher">Docente Responsable *</label>
+            <label for="docTeacher">Docente Responsable</label>
             <select id="docTeacher" required>
               <option value="Jessica">Jessica</option>
-              <option value="Claudia (Rectora)">Claudia (Rectora)</option>
               <option value="Yuri">Yuri</option>
               <option value="Elcy">Elcy</option>
+              <option value="Claudia (Rectora)">Claudia (Rectora)</option>
+              <option value="Administrador">Administrador</option>
             </select>
           </div>
 
@@ -304,12 +311,12 @@
               <option value="Cuarto (4°)">Grado 4°</option>
               <option value="Quinto (5°)">Grado 5°</option>
               <option value="Transición">Transición</option>
-              <option value="Primaria General">General Primaria</option>
+              <option value="General">General</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="docSubject">Materia / Asignatura *</label>
+            <label for="docSubject">Materia *</label>
             <select id="docSubject" required>
               <option value="Matemáticas">Matemáticas</option>
               <option value="Lengua Castellana">Lengua Castellana</option>
@@ -319,14 +326,14 @@
               <option value="Educación Artística">Educación Artística</option>
               <option value="Ética y Valores">Ética y Valores</option>
               <option value="Tecnología e Informática">Tecnología e Informática</option>
-              <option value="Institucional / Dirección">Institucional / Dirección</option>
+              <option value="Institucional">Institucional</option>
             </select>
           </div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
-            <label for="docFolder">Carpeta / Categoría *</label>
+            <label for="docFolder">Carpeta / Tipo *</label>
             <select id="docFolder" required>
               <option value="planeaciones">Planeaciones & Mallas</option>
               <option value="calificaciones">Planillas de Notas</option>
@@ -336,7 +343,7 @@
           </div>
 
           <div class="form-group">
-            <label for="docPeriod">Periodo Académico</label>
+            <label for="docPeriod">Periodo</label>
             <select id="docPeriod">
               <option value="1° Periodo">1° Periodo</option>
               <option value="2° Periodo">2° Periodo</option>
@@ -347,15 +354,27 @@
           </div>
         </div>
 
+        <!-- Checkbox para Compartir Públicamente -->
+        <div class="form-group-checkbox">
+          <label class="checkbox-container">
+            <input type="checkbox" id="docIsPublic">
+            <span class="checkmark"></span>
+            <div class="checkbox-label">
+              <strong>📢 Compartir con todos los profesores</strong>
+              <small>Si marcas esta casilla, aparecerá en la carpeta pública accesible para todo el colegio.</small>
+            </div>
+          </label>
+        </div>
+
         <div class="form-group">
-          <label for="docNotes">Observaciones Pedagógicas</label>
-          <textarea id="docNotes" rows="2" placeholder="Detalles de la planeación, logros o fechas de entrega..."></textarea>
+          <label for="docNotes">Observaciones o Notas</label>
+          <textarea id="docNotes" rows="2" placeholder="Detalles pedagógicos..."></textarea>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btnCancelModal">Cancelar</button>
           <button type="submit" class="btn btn-primary" id="btnSaveSubmit">
-            <i class="ph-bold ph-floppy-disk"></i> Guardar Registro
+            <i class="ph-bold ph-floppy-disk"></i> Guardar en BD
           </button>
         </div>
       </form>
