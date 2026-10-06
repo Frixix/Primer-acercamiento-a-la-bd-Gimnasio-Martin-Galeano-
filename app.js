@@ -1,8 +1,8 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Guardado de fecha y hora exacta de subida
- * - Almacenamiento binario persistente en IndexedDB (archivos reales .xlsx, .pdf, .docx)
- * - Descarga exacta del archivo subido sin conversiones a .txt
+ * - Fecha y Hora sutil integrada en la cabecera de la tarjeta
+ * - Almacenamiento binario en IndexedDB (descarga exacta del archivo subido)
+ * - Identificador único de radicado (MG-PRI-XXX)
  */
 
 // 1. Usuarios Oficiales con Claves
@@ -414,7 +414,7 @@ function handleFileSelect(e) {
   uploadedFileMeta = {
     name: file.name,
     size: formatBytes(file.size),
-    rawFile: file // Retenemos el archivo original en memoria
+    rawFile: file
   };
 
   selectedFileName.textContent = `${file.name} (${uploadedFileMeta.size})`;
@@ -468,7 +468,6 @@ async function handleFormSubmit(e) {
       if (uploadedFileMeta && uploadedFileMeta.rawFile) {
         documents[docIndex].fileName = uploadedFileMeta.name;
         documents[docIndex].fileSize = uploadedFileMeta.size;
-        // Guardamos el nuevo archivo en IndexedDB
         await saveFileToIndexedDB(
           documents[docIndex].id, 
           uploadedFileMeta.rawFile, 
@@ -489,10 +488,9 @@ async function handleFormSubmit(e) {
       ...docData,
       fileName: uploadedFileMeta.name,
       fileSize: uploadedFileMeta.size,
-      uploadedAt: formattedDateTime // Fecha y hora exacta registrada
+      uploadedAt: formattedDateTime
     };
 
-    // Guardar el archivo real binario en IndexedDB (no se borra al recargar)
     await saveFileToIndexedDB(
       newId, 
       uploadedFileMeta.rawFile, 
@@ -523,25 +521,22 @@ window.deleteDoc = async function(id) {
   }
 };
 
-// 11. DESCARGA EXACTA DEL ARCHIVO SUBIDO (SIN CONVERTIR A .TXT)
+// 11. Descarga Exacta del Archivo Subido
 window.downloadDoc = async function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
 
   try {
-    // 1. Buscamos el archivo real binario en IndexedDB
     const storedFile = await getFileFromIndexedDB(id);
 
     if (storedFile && storedFile.fileBlob) {
-      // Descargamos el archivo exacto con su extensión real (.xlsx, .pdf, .docx, etc.)
       const url = URL.createObjectURL(storedFile.fileBlob);
       triggerDownload(url, storedFile.fileName || doc.fileName);
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       return;
     }
 
-    // 2. Si es uno de los registros de prueba precargados inicialmente:
-    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real (por ejemplo un .xlsx o .docx) y al hacer clic en este botón se descargará exactamente el archivo que subiste.`);
+    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real y al hacer clic en este botón se descargará exactamente el archivo que subiste.`);
 
   } catch (error) {
     console.error("Error al acceder a IndexedDB:", error);
@@ -565,36 +560,30 @@ function getFilteredDocuments() {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
   return documents.filter(doc => {
-    // Regla de Privacidad
     if (!isPrivileged) {
       const isMine = doc.teacher === currentUser.name;
       const isShared = Boolean(doc.isPublic);
       if (!isMine && !isShared) return false;
     }
 
-    // Filtro por Docente
     if (isPrivileged && currentTeacherFilter !== "all") {
       if (doc.teacher !== currentTeacherFilter) return false;
     }
 
-    // Filtro por Carpeta
     if (currentFolderFilter === "publico") {
       if (!doc.isPublic) return false;
     } else if (currentFolderFilter !== "all") {
       if (doc.folder !== currentFolderFilter) return false;
     }
 
-    // Filtro por Grado
     if (currentGradeFilter && doc.grade !== currentGradeFilter) {
       return false;
     }
 
-    // Filtro por Materia
     if (currentSubjectFilter && doc.subject !== currentSubjectFilter) {
       return false;
     }
 
-    // Buscador
     if (currentSearch) {
       const q = currentSearch;
       const match = 
@@ -612,7 +601,7 @@ function getFilteredDocuments() {
   });
 }
 
-// 13. Renderizado de Interfaz
+// 13. Renderizado de Interfaz con Encabezado Sutil
 function renderApp() {
   updateCounts();
   updateBreadcrumb();
@@ -642,7 +631,12 @@ function renderApp() {
             <span class="doc-subject-tag">${escapeHTML(doc.subject)}</span>
             ${doc.isPublic ? '<span class="doc-public-tag"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
           </div>
-          <code style="font-size:0.65rem; color:#64748b;">${doc.id}</code>
+          <!-- FECHA Y HORA SUTIL JUNTO AL ID RADICADO -->
+          <div class="doc-meta-subtle">
+            <span>${doc.uploadedAt || 'Reciente'}</span>
+            <span class="dot-separator">•</span>
+            <code>${doc.id}</code>
+          </div>
         </div>
 
         <h4 class="doc-card-title">${escapeHTML(doc.title)}</h4>
@@ -656,14 +650,12 @@ function renderApp() {
             <i class="ph-bold ph-chalkboard-teacher"></i>
             <span>${doc.grade} • ${doc.period}</span>
           </div>
-          <div class="doc-meta-item doc-meta-time">
-            <i class="ph-bold ph-clock"></i>
-            <span>Subido: ${doc.uploadedAt || "Reciente"}</span>
-          </div>
+          
           <div class="file-attachment-badge">
             <i class="${fileIcon}"></i>
             <span>${escapeHTML(doc.fileName)} <small>(${doc.fileSize})</small></span>
           </div>
+
           ${doc.notes ? `
             <div class="doc-meta-item" style="margin-top: 4px; font-style: italic;">
               <i class="ph-bold ph-note"></i>

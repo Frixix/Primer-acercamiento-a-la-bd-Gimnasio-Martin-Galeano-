@@ -455,6 +455,7 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 8px;
 }
 
 .badges-group {
@@ -491,6 +492,29 @@ select {
   border: 1px solid #a7f3d0;
 }
 
+/* FECHA Y RADICADO SUTILES */
+.doc-meta-subtle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.doc-meta-subtle code {
+  font-family: monospace;
+  background-color: var(--surface-alt);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.dot-separator {
+  color: #cbd5e1;
+}
+
 .doc-card-title {
   font-size: 0.95rem;
   font-weight: 600;
@@ -509,11 +533,6 @@ select {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.doc-meta-time {
-  color: #0369a1;
-  font-weight: 600;
 }
 
 .file-attachment-badge {
