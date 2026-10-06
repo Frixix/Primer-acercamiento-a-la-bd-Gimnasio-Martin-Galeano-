@@ -1,26 +1,66 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Compresión Deflate Máxima (JSZip) al subir para no saturar memoria
- * - Descompresión al vuelo al descargar
- * - Responsive Móvil y guardado de fecha/hora
+ * - Límites de subida: Profesoras (15 MB), Rectora / Admin (2 GB = 2048 MB)
+ * - Compresión JSZip inteligente (evita colapsar la RAM en archivos gigantes)
+ * - Descompresión al vuelo y persistencia en IndexedDB
  */
 
-// 1. Usuarios Oficiales con Claves
+// 1. Usuarios Oficiales con Cuotas Máximas de Subida
 const USERS = {
-  admin: { name: "Administrador", role: "admin", label: "Administrador General", initial: "A", pass: "admin2026" },
-  claudia: { name: "Claudia (Rectora)", role: "rectora", label: "Rectora Institucional", initial: "C", pass: "rectora2026" },
-  jessica: { name: "Jessica", role: "docente", label: "Docente", initial: "J", pass: "jessica2026" },
-  yuri: { name: "Yuri", role: "docente", label: "Docente", initial: "Y", pass: "yuri2026" },
-  elcy: { name: "Elcy", role: "docente", label: "Docente", initial: "E", pass: "elcy2026" }
+  admin: { 
+    name: "Administrador", 
+    role: "admin", 
+    label: "Administrador General", 
+    initial: "A", 
+    pass: "admin2026",
+    maxUploadBytes: 2 * 1024 * 1024 * 1024, // 2 GB
+    maxUploadLabel: "2 GB"
+  },
+  claudia: { 
+    name: "Claudia (Rectora)", 
+    role: "rectora", 
+    label: "Rectora Institucional", 
+    initial: "C", 
+    pass: "rectora2026",
+    maxUploadBytes: 2 * 1024 * 1024 * 1024, // 2 GB
+    maxUploadLabel: "2 GB"
+  },
+  jessica: { 
+    name: "Jessica", 
+    role: "docente", 
+    label: "Docente", 
+    initial: "J", 
+    pass: "jessica2026",
+    maxUploadBytes: 15 * 1024 * 1024, // 15 MB
+    maxUploadLabel: "15 MB"
+  },
+  yuri: { 
+    name: "Yuri", 
+    role: "docente", 
+    label: "Docente", 
+    initial: "Y", 
+    pass: "yuri2026",
+    maxUploadBytes: 15 * 1024 * 1024, // 15 MB
+    maxUploadLabel: "15 MB"
+  },
+  elcy: { 
+    name: "Elcy", 
+    role: "docente", 
+    label: "Docente", 
+    initial: "E", 
+    pass: "elcy2026",
+    maxUploadBytes: 15 * 1024 * 1024, // 15 MB
+    maxUploadLabel: "15 MB"
+  }
 };
 
 let currentUser = null;
 
 // ==========================================
-// 2. MOTOR DE ALMACENAMIENTO INDEXEDDB PARA ARCHIVOS COMPRIMIDOS
+// 2. MOTOR DE ALMACENAMIENTO INDEXEDDB PARA ARCHIVOS
 // ==========================================
-const DB_NAME = "GaleanoCompressedDB";
-const STORE_NAME = "compressed_files";
+const DB_NAME = "GaleanoTieredDB";
+const STORE_NAME = "documents_payload";
 
 function openIndexedDB() {
   return new Promise((resolve, reject) => {
@@ -36,18 +76,18 @@ function openIndexedDB() {
   });
 }
 
-async function saveCompressedFileToDB(id, zipBlob, originalName, mimeType) {
+async function saveFileToDB(id, blobData, originalName, mimeType, isCompressed) {
   const db = await openIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    store.put({ id, zipBlob, originalName, mimeType });
+    store.put({ id, blobData, originalName, mimeType, isCompressed });
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 }
 
-async function getCompressedFileFromDB(id) {
+async function getFileFromDB(id) {
   const db = await openIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
@@ -84,6 +124,7 @@ const initialDocuments = [
     fileSize: "1.4 MB",
     compressedSize: "420 KB",
     ratio: "70%",
+    isCompressed: true,
     uploadedAt: "05/10/2026, 09:15 a. m.",
     notes: "Planeación bimestral propia del grado tercero."
   },
@@ -100,6 +141,7 @@ const initialDocuments = [
     fileSize: "3.2 MB",
     compressedSize: "1.1 MB",
     ratio: "65%",
+    isCompressed: true,
     uploadedAt: "05/10/2026, 08:30 a. m.",
     notes: "Documento oficial compartido para todo el cuerpo docente."
   },
@@ -116,6 +158,7 @@ const initialDocuments = [
     fileSize: "680 KB",
     compressedSize: "190 KB",
     ratio: "72%",
+    isCompressed: true,
     uploadedAt: "05/10/2026, 11:40 a. m.",
     notes: "Guías con actividades prácticas para laboratorio escolar."
   },
@@ -132,15 +175,16 @@ const initialDocuments = [
     fileSize: "512 KB",
     compressedSize: "135 KB",
     ratio: "74%",
+    isCompressed: true,
     uploadedAt: "05/10/2026, 02:10 p. m.",
     notes: "Valoración formativa de trazo y comprensión de fonemas."
   }
 ];
 
-// Carga de metadatos
+// Carga de metadatos desde LocalStorage
 let documents = [];
 try {
-  const stored = localStorage.getItem('galeano_db_clean_records_v4');
+  const stored = localStorage.getItem('galeano_db_clean_records_v5');
   documents = stored ? JSON.parse(stored) : initialDocuments;
 } catch (e) {
   console.warn("Inicializando base de datos local:", e);
@@ -149,7 +193,7 @@ try {
 
 function saveDocuments() {
   try {
-    localStorage.setItem('galeano_db_clean_records_v4', JSON.stringify(documents));
+    localStorage.setItem('galeano_db_clean_records_v5', JSON.stringify(documents));
   } catch (err) {
     alert("Error al actualizar la base de datos.");
   }
@@ -163,7 +207,7 @@ let currentGradeFilter = "";
 let currentSubjectFilter = "";
 let currentSearch = "";
 let currentView = "cards";
-let processedUploadData = null; // Almacenará { zipBlob, originalName, origSize, compSize, ratio, mimeType }
+let processedUploadData = null;
 
 // 5. Elementos del DOM
 const loginScreen = document.getElementById("loginScreen");
@@ -179,6 +223,8 @@ const navAvatar = document.getElementById("navAvatar");
 const topSubtitle = document.getElementById("topSubtitle");
 const adminTeacherSection = document.getElementById("adminTeacherSection");
 const labelAllFolders = document.getElementById("labelAllFolders");
+const quotaSummaryDesc = document.getElementById("quotaSummaryDesc");
+const fileQuotaHint = document.getElementById("fileQuotaHint");
 
 const mainSidebar = document.getElementById("mainSidebar");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
@@ -280,6 +326,10 @@ function updateUIForUser() {
 
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
+  // Actualizar los textos de cuota
+  quotaSummaryDesc.innerHTML = `Límite por subida: <strong>${currentUser.maxUploadLabel}</strong> (${currentUser.role === 'docente' ? 'Perfil Docente' : 'Rectoría / Admin'}).`;
+  fileQuotaHint.textContent = `Límite autorizado para tu cuenta: hasta ${currentUser.maxUploadLabel} por archivo.`;
+
   if (isPrivileged) {
     adminTeacherSection.classList.remove("hidden");
     labelAllFolders.textContent = "Todos los Documentos";
@@ -296,7 +346,6 @@ function updateUIForUser() {
 
 // 7. Eventos & Menú Móvil
 function setupEvents() {
-  // Toggle móvil
   btnToggleSidebar.addEventListener("click", () => {
     mainSidebar.classList.add("mobile-open");
     sidebarOverlay.classList.remove("hidden");
@@ -310,7 +359,6 @@ function setupEvents() {
   btnCloseSidebar.addEventListener("click", closeMobileSidebar);
   sidebarOverlay.addEventListener("click", closeMobileSidebar);
 
-  // Filtros Sidebar
   document.querySelectorAll(".teacher-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".teacher-btn").forEach(b => b.classList.remove("active"));
@@ -374,44 +422,77 @@ function setupEvents() {
   docForm.addEventListener("submit", handleFormSubmit);
 }
 
-// 8. Compresión Máxima en el Navegador con JSZip
+// 8. Validación de Límites y Compresión Segura
 async function handleFileCompressAndSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  dropText.textContent = "Comprimiendo archivo al máximo...";
+  // 1. VALIDACIÓN ESTRICTA DEL LÍMITE DE TAMAÑO SEGÚN ROL
+  if (file.size > currentUser.maxUploadBytes) {
+    if (currentUser.role === "docente") {
+      alert(`⚠️ Archivo demasiado pesado (${formatBytes(file.size)}).\n\nComo docente, tu límite por documento es de 15 MB. Si requieres subir un volumen mayor, por favor solicítaselo a Rectoría (Claudia).`);
+    } else {
+      alert(`⚠️ Archivo excede el límite máximo institucional permitido de 2 GB (${formatBytes(file.size)}).`);
+    }
+    resetFileInput();
+    return;
+  }
+
+  dropText.textContent = "Procesando archivo...";
 
   try {
-    const zip = new JSZip();
-    // Añadimos el archivo original al zip con compresión DEFLATE nivel 9
-    zip.file(file.name, file, {
-      compression: "DEFLATE",
-      compressionOptions: { level: 9 }
-    });
-
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-
     const origSize = file.size;
-    const compSize = zipBlob.size;
-    const savingsPercent = Math.max(0, Math.round(((origSize - compSize) / origSize) * 100));
 
-    processedUploadData = {
-      zipBlob: zipBlob,
-      originalName: file.name,
-      fileSize: formatBytes(origSize),
-      compressedSize: formatBytes(compSize),
-      ratio: `${savingsPercent}%`,
-      mimeType: file.type || "application/octet-stream"
-    };
+    // ESTRATEGIA INTELIGENTE DE COMPRESIÓN:
+    // Si el archivo es menor a 120 MB: Se comprime en tiempo real con JSZip.
+    // Si es un archivo masivo de Rectoría (> 120 MB hasta 2 GB): Se guarda como binario directo para evitar saturar la RAM del navegador.
+    if (origSize <= 120 * 1024 * 1024) {
+      dropText.textContent = "Comprimiendo archivo al máximo...";
+      
+      const zip = new JSZip();
+      zip.file(file.name, file, {
+        compression: "DEFLATE",
+        compressionOptions: { level: 9 }
+      });
 
-    selectedFileName.textContent = `${file.name}`;
-    compressionStats.textContent = `Optimizado: ${processedUploadData.fileSize} ➔ ${processedUploadData.compressedSize} (Ahorro del ${processedUploadData.ratio})`;
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const compSize = zipBlob.size;
+      const savingsPercent = Math.max(0, Math.round(((origSize - compSize) / origSize) * 100));
+
+      processedUploadData = {
+        blobToStore: zipBlob,
+        originalName: file.name,
+        fileSize: formatBytes(origSize),
+        compressedSize: formatBytes(compSize),
+        ratio: `${savingsPercent}%`,
+        isCompressed: true,
+        mimeType: file.type || "application/octet-stream"
+      };
+
+      selectedFileName.textContent = `${file.name}`;
+      compressionStats.textContent = `Optimizado: ${processedUploadData.fileSize} ➔ ${processedUploadData.compressedSize} (Ahorro del ${processedUploadData.ratio})`;
+    } else {
+      // Archivo masivo (Rectoría): Almacenamiento directo sin congelar la memoria
+      processedUploadData = {
+        blobToStore: file,
+        originalName: file.name,
+        fileSize: formatBytes(origSize),
+        compressedSize: formatBytes(origSize),
+        ratio: null,
+        isCompressed: false,
+        mimeType: file.type || "application/octet-stream"
+      };
+
+      selectedFileName.textContent = `${file.name}`;
+      compressionStats.textContent = `Archivo masivo verificado: ${processedUploadData.fileSize} (Almacenamiento directo de alta capacidad)`;
+    }
+
     fileSelectedBadge.classList.remove("hidden");
-    dropText.textContent = "¡Archivo comprimido y listo!";
+    dropText.textContent = "¡Archivo validado y listo para guardar!";
 
   } catch (error) {
-    console.error("Error comprimiendo archivo:", error);
-    alert("Hubo un problema al comprimir el archivo.");
+    console.error("Error procesando archivo:", error);
+    alert("Hubo un problema al procesar el archivo.");
     resetFileInput();
   }
 }
@@ -426,7 +507,7 @@ function resetFileInput() {
 // 9. Modal Crear / Editar
 function openModalForCreate() {
   editDocId.value = "";
-  modalTitle.textContent = "Subir Documento Comprimido";
+  modalTitle.textContent = "Subir Documento a la BD";
   docForm.reset();
   resetFileInput();
 
@@ -467,7 +548,7 @@ window.editDoc = function(id) {
 
   processedUploadData = null;
   selectedFileName.textContent = `${doc.fileName}`;
-  compressionStats.textContent = `Tamaño optimizado: ${doc.compressedSize || doc.fileSize}`;
+  compressionStats.textContent = `Tamaño registrado: ${doc.compressedSize || doc.fileSize}`;
   fileSelectedBadge.classList.remove("hidden");
   dropText.textContent = "Archivo conservado (clic para cambiarlo)";
 
@@ -520,18 +601,20 @@ async function handleFormSubmit(e) {
         documents[docIndex].fileSize = processedUploadData.fileSize;
         documents[docIndex].compressedSize = processedUploadData.compressedSize;
         documents[docIndex].ratio = processedUploadData.ratio;
+        documents[docIndex].isCompressed = processedUploadData.isCompressed;
 
-        await saveCompressedFileToDB(
+        await saveFileToDB(
           documents[docIndex].id,
-          processedUploadData.zipBlob,
+          processedUploadData.blobToStore,
           processedUploadData.originalName,
-          processedUploadData.mimeType
+          processedUploadData.mimeType,
+          processedUploadData.isCompressed
         );
       }
     }
   } else {
     if (!processedUploadData) {
-      alert("Por favor selecciona un archivo para comprimir y subir.");
+      alert("Por favor selecciona un archivo para subir.");
       return;
     }
 
@@ -543,15 +626,16 @@ async function handleFormSubmit(e) {
       fileSize: processedUploadData.fileSize,
       compressedSize: processedUploadData.compressedSize,
       ratio: processedUploadData.ratio,
+      isCompressed: processedUploadData.isCompressed,
       uploadedAt: formattedDateTime
     };
 
-    // Guardar el binario zip ultra-comprimido en IndexedDB
-    await saveCompressedFileToDB(
+    await saveFileToDB(
       newId,
-      processedUploadData.zipBlob,
+      processedUploadData.blobToStore,
       processedUploadData.originalName,
-      processedUploadData.mimeType
+      processedUploadData.mimeType,
+      processedUploadData.isCompressed
     );
 
     documents.unshift(newDoc);
@@ -559,7 +643,7 @@ async function handleFormSubmit(e) {
 
   saveDocuments();
   closeModal();
-  alert(`✅ Documento "${docData.title}" comprimido y guardado con éxito.`);
+  alert(`✅ Documento "${docData.title}" guardado con éxito en la base de datos.`);
 }
 
 // 11. Eliminar Registro
@@ -583,27 +667,35 @@ window.downloadDoc = async function(id) {
   if (!doc) return;
 
   try {
-    const record = await getCompressedFileFromDB(id);
+    const record = await getFileFromDB(id);
 
-    if (record && record.zipBlob) {
-      // Descomprimir al vuelo con JSZip
-      const zip = await JSZip.loadAsync(record.zipBlob);
-      const zipFile = zip.file(record.originalName);
+    if (record && record.blobData) {
+      // Si fue comprimido: desempacar con JSZip
+      if (record.isCompressed) {
+        const zip = await JSZip.loadAsync(record.blobData);
+        const zipFile = zip.file(record.originalName);
 
-      if (zipFile) {
-        const uncompressedBlob = await zipFile.async("blob");
-        const url = URL.createObjectURL(uncompressedBlob);
+        if (zipFile) {
+          const uncompressedBlob = await zipFile.async("blob");
+          const url = URL.createObjectURL(uncompressedBlob);
+          triggerDownload(url, record.originalName);
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          return;
+        }
+      } else {
+        // Archivo directo masivo: descarga directa
+        const url = URL.createObjectURL(record.blobData);
         triggerDownload(url, record.originalName);
         setTimeout(() => URL.revokeObjectURL(url), 1500);
         return;
       }
     }
 
-    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real y al hacer clic en este botón se descomprimirá y descargará intacto.`);
+    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real y al hacer clic en este botón se descargará exactamente el archivo que subiste.`);
 
   } catch (error) {
-    console.error("Error descomprimiendo archivo:", error);
-    alert("Hubo un error al descomprimir el archivo original.");
+    console.error("Error recuperando el archivo:", error);
+    alert("Hubo un error al recuperar el archivo original.");
   }
 };
 
@@ -714,13 +806,12 @@ function renderApp() {
             <span><strong>Materia:</strong> ${escapeHTML(doc.subject)} • ${doc.period}</span>
           </div>
           
-          <!-- Badge de Archivo con Ahorro de Compresión -->
           <div class="file-attachment-badge">
             <div class="file-attachment-badge-left">
               <i class="${fileIcon}"></i>
               <span>${escapeHTML(doc.fileName)}</span>
             </div>
-            ${doc.ratio ? `<span class="savings-pill"><i class="ph-bold ph-file-zip"></i> -${doc.ratio}</span>` : ''}
+            ${doc.ratio ? `<span class="savings-pill"><i class="ph-bold ph-file-zip"></i> -${doc.ratio}</span>` : `<span class="savings-pill">${doc.fileSize}</span>`}
           </div>
 
           ${doc.notes ? `
@@ -732,7 +823,7 @@ function renderApp() {
         </div>
 
         <div class="doc-card-footer">
-          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descomprimir y descargar archivo original">
+          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descargar archivo original">
             <i class="ph-bold ph-download-simple"></i> Descargar
           </button>
           
@@ -777,7 +868,7 @@ function renderApp() {
         </td>
         <td>
           <div class="action-buttons">
-            <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descomprimir y descargar">
+            <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descargar">
               <i class="ph-bold ph-download-simple"></i>
             </button>
             ${canEdit ? `
@@ -865,7 +956,7 @@ function formatFolder(key) {
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 Bytes';
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB'];
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }

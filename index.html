@@ -64,7 +64,6 @@
     <!-- Navbar -->
     <header class="navbar">
       <div class="nav-left">
-        <!-- Botón Hamburguesa para Móvil -->
         <button class="btn-mobile-toggle" id="btnToggleSidebar" aria-label="Abrir Menú">
           <i class="ph-bold ph-list"></i>
         </button>
@@ -144,7 +143,7 @@
           </nav>
         </div>
 
-        <!-- Categorías con Colores Pastel Individuales -->
+        <!-- Categorías con Colores Pastel -->
         <div class="sidebar-section">
           <div class="sidebar-header">
             <i class="ph-bold ph-folder"></i>
@@ -181,10 +180,10 @@
 
         <div class="db-summary-card">
           <div class="summary-title">
-            <i class="ph-bold ph-file-zip"></i>
-            <span>Compresión Activa</span>
+            <i class="ph-bold ph-shield-check"></i>
+            <span>Límite de Almacenamiento</span>
           </div>
-          <p class="summary-desc">Archivos optimizados al nivel máximo (Deflate) en IndexedDB para no saturar almacenamiento.</p>
+          <p class="summary-desc" id="quotaSummaryDesc">Calculando cuota autorizada...</p>
         </div>
       </aside>
 
@@ -259,7 +258,7 @@
                 <th>Materia</th>
                 <th>Categoría / Carpeta</th>
                 <th>Fecha y Hora</th>
-                <th>Compresión</th>
+                <th>Tamaño / Optimización</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -284,8 +283,8 @@
         <div class="modal-title-wrap">
           <div class="modal-icon"><i class="ph-bold ph-cloud-arrow-up"></i></div>
           <div>
-            <h3 id="modalTitle">Subir Documento Comprimido</h3>
-            <p>Se comprime automáticamente para no saturar memoria</p>
+            <h3 id="modalTitle">Subir Documento</h3>
+            <p id="modalSubtitle">Comprobación de cuota y compresión inteligente</p>
           </div>
         </div>
         <button class="btn-close" id="btnCloseModal"><i class="ph-bold ph-x"></i></button>
@@ -299,14 +298,14 @@
           <div class="file-dropzone" id="dropzone">
             <i class="ph-duotone ph-file-arrow-up"></i>
             <p class="drop-text" id="dropText">Clic o arrastra el archivo aquí</p>
-            <span class="file-hint">Excel (.xlsx), PDF (.pdf), Word (.docx), etc.</span>
+            <!-- Límite visible dinámico -->
+            <span class="file-hint" id="fileQuotaHint">Excel, PDF, Word (Comprobando límite...)</span>
             <input type="file" id="fileInput" class="file-hidden-input">
           </div>
           
-          <!-- Indicador de archivo con estado de compresión -->
           <div id="fileSelectedBadge" class="file-selected-badge hidden">
             <div class="file-badge-info">
-              <i class="ph-bold ph-file-zip"></i>
+              <i class="ph-bold ph-file-check" id="badgeFileIcon"></i>
               <div>
                 <span id="selectedFileName">archivo.xlsx</span>
                 <small id="compressionStats" class="compression-stats"></small>
