@@ -2,14 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Sistema Documental Primaria - Gimnasio Martin Galeano</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
+  <!-- Iconos Phosphor -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Motor de Compresión y Descompresión JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -58,13 +63,20 @@
     
     <!-- Navbar -->
     <header class="navbar">
-      <div class="nav-brand">
-        <div class="brand-icon">
-          <i class="ph-bold ph-graduation-cap"></i>
-        </div>
-        <div>
-          <h1>Gimnasio Martin Galeano</h1>
-          <p class="subtitle" id="topSubtitle">Gestión Documental Primaria</p>
+      <div class="nav-left">
+        <!-- Botón Hamburguesa para Móvil -->
+        <button class="btn-mobile-toggle" id="btnToggleSidebar" aria-label="Abrir Menú">
+          <i class="ph-bold ph-list"></i>
+        </button>
+
+        <div class="nav-brand">
+          <div class="brand-icon">
+            <i class="ph-bold ph-graduation-cap"></i>
+          </div>
+          <div>
+            <h1>Gimnasio Martin Galeano</h1>
+            <p class="subtitle" id="topSubtitle">Gestión Documental Primaria</p>
+          </div>
         </div>
       </div>
 
@@ -76,8 +88,8 @@
             <span class="user-role" id="navUserRole">Rol</span>
           </div>
         </div>
-        <button class="btn btn-primary" id="btnOpenModal">
-          <i class="ph-bold ph-cloud-arrow-up"></i> Subir Documento
+        <button class="btn btn-primary btn-upload-nav" id="btnOpenModal">
+          <i class="ph-bold ph-cloud-arrow-up"></i> <span>Subir Documento</span>
         </button>
         <button class="btn btn-secondary btn-icon-only" id="btnLogout" title="Cerrar Sesión">
           <i class="ph-bold ph-sign-out"></i>
@@ -85,10 +97,18 @@
       </div>
     </header>
 
+    <!-- Overlay oscuro para menú móvil -->
+    <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
+
     <div class="app-layout">
-      <!-- Barra lateral -->
-      <aside class="sidebar">
+      <!-- Barra lateral adaptable -->
+      <aside class="sidebar" id="mainSidebar">
         
+        <div class="sidebar-top-mobile">
+          <span>Menú de Navegación</span>
+          <button id="btnCloseSidebar" class="btn-icon"><i class="ph-bold ph-x"></i></button>
+        </div>
+
         <!-- Bloque exclusivo para Administrador y Rectora -->
         <div class="sidebar-section" id="adminTeacherSection">
           <div class="sidebar-header">
@@ -161,10 +181,10 @@
 
         <div class="db-summary-card">
           <div class="summary-title">
-            <i class="ph-bold ph-shield-check"></i>
-            <span>Nivel de Privacidad</span>
+            <i class="ph-bold ph-file-zip"></i>
+            <span>Compresión Activa</span>
           </div>
-          <p class="summary-desc" id="roleDescription">Cargando permisos...</p>
+          <p class="summary-desc">Archivos optimizados al nivel máximo (Deflate) en IndexedDB para no saturar almacenamiento.</p>
         </div>
       </aside>
 
@@ -192,7 +212,7 @@
         <section class="filters-bar">
           <div class="search-box">
             <i class="ph ph-magnifying-glass"></i>
-            <input type="text" id="searchInput" placeholder="Buscar por título, archivo, radicado o fecha...">
+            <input type="text" id="searchInput" placeholder="Buscar por título, docente, materia...">
           </div>
 
           <div class="filter-group">
@@ -239,7 +259,7 @@
                 <th>Materia</th>
                 <th>Categoría / Carpeta</th>
                 <th>Fecha y Hora</th>
-                <th>Archivo</th>
+                <th>Compresión</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -264,8 +284,8 @@
         <div class="modal-title-wrap">
           <div class="modal-icon"><i class="ph-bold ph-cloud-arrow-up"></i></div>
           <div>
-            <h3 id="modalTitle">Subir Documento</h3>
-            <p>Guarda el archivo original en la base de datos local</p>
+            <h3 id="modalTitle">Subir Documento Comprimido</h3>
+            <p>Se comprime automáticamente para no saturar memoria</p>
           </div>
         </div>
         <button class="btn-close" id="btnCloseModal"><i class="ph-bold ph-x"></i></button>
@@ -275,16 +295,23 @@
         <input type="hidden" id="editDocId">
 
         <div class="form-group" id="fileGroupContainer">
-          <label>Archivo Original a Subir *</label>
+          <label>Archivo a Subir *</label>
           <div class="file-dropzone" id="dropzone">
             <i class="ph-duotone ph-file-arrow-up"></i>
             <p class="drop-text" id="dropText">Clic o arrastra el archivo aquí</p>
             <span class="file-hint">Excel (.xlsx), PDF (.pdf), Word (.docx), etc.</span>
             <input type="file" id="fileInput" class="file-hidden-input">
           </div>
+          
+          <!-- Indicador de archivo con estado de compresión -->
           <div id="fileSelectedBadge" class="file-selected-badge hidden">
-            <i class="ph-bold ph-file-check"></i>
-            <span id="selectedFileName">archivo.xlsx</span>
+            <div class="file-badge-info">
+              <i class="ph-bold ph-file-zip"></i>
+              <div>
+                <span id="selectedFileName">archivo.xlsx</span>
+                <small id="compressionStats" class="compression-stats"></small>
+              </div>
+            </div>
             <button type="button" id="btnRemoveFile" class="btn-remove-file"><i class="ph-bold ph-x"></i></button>
           </div>
         </div>
@@ -363,7 +390,7 @@
             <input type="checkbox" id="docIsPublic">
             <span class="checkmark"></span>
             <div class="checkbox-label">
-              <strong>📢 Compartir con todos los profesores</strong>
+              <strong> Compartir con todos los profesores</strong>
               <small>Aparecerá en la carpeta pública para que cualquiera lo pueda descargar.</small>
             </div>
           </label>

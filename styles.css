@@ -15,40 +15,32 @@
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
 
-  /* ========================================================
-     PALETA DE COLORES PASTEL EXCLUSIVA PARA CARPETAS/RUTAS
-     ======================================================== */
-  /* Todos los Documentos: Azul Pastel */
+  /* Colores Pastel para Carpetas */
   --pastel-all-bg: #e0f2fe;
   --pastel-all-txt: #0369a1;
   --pastel-all-border: #bae6fd;
 
-  /* Compartidos con Todos: Verde Menta Pastel */
   --pastel-public-bg: #dcfce7;
   --pastel-public-txt: #15803d;
   --pastel-public-border: #bbf7d0;
 
-  /* Planeaciones: Lavanda / Violeta Pastel */
   --pastel-plan-bg: #f3e8ff;
   --pastel-plan-txt: #6b21a8;
   --pastel-plan-border: #e9d5ff;
 
-  /* Planillas de Notas: Ámbar / Melocotón Pastel */
   --pastel-notas-bg: #fef3c7;
   --pastel-notas-txt: #b45309;
   --pastel-notas-border: #fde68a;
 
-  /* Guías & Talleres: Rosa Pastel Suave */
   --pastel-talleres-bg: #fce7f3;
   --pastel-talleres-txt: #9d174d;
   --pastel-talleres-border: #fbcfe8;
 
-  /* Observador & Actas: Turquesa / Cian Pastel */
   --pastel-observador-bg: #ccfbf1;
   --pastel-observador-txt: #0f766e;
   --pastel-observador-border: #99f6e4;
 
-  /* Grados Escolares: Mismo Color Pastel Neutro (Gris Arena) */
+  /* Grados Escolares: Mismo Color Pastel Neutro */
   --pastel-grade-bg: #f1f5f9;
   --pastel-grade-txt: #334155;
   --pastel-grade-border: #e2e8f0;
@@ -65,6 +57,7 @@ body {
   background-color: var(--bg-body);
   color: var(--text-main);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Pantalla Login */
@@ -139,13 +132,30 @@ body {
 .navbar {
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0.9rem 2rem;
+  padding: 0.85rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
 }
 
 .nav-brand {
@@ -155,53 +165,56 @@ body {
 }
 
 .brand-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   background: linear-gradient(135deg, var(--primary), var(--primary-light));
   color: #fff;
   border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   font-size: 22px;
+  flex-shrink: 0;
 }
 
 .nav-brand h1 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--primary);
+  line-height: 1.2;
 }
 
 .subtitle {
-  font-size: 0.775rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 12px 4px 6px;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
   background-color: var(--surface-alt);
   border-radius: 999px;
   border: 1px solid var(--border);
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background-color: var(--primary);
   color: #fff;
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -211,12 +224,12 @@ body {
 }
 
 .user-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
 .user-role {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
 }
 
@@ -224,7 +237,8 @@ body {
 .app-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: calc(100vh - 65px);
+  min-height: calc(100vh - 63px);
+  position: relative;
 }
 
 /* Sidebar */
@@ -235,6 +249,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 30;
+}
+
+.sidebar-top-mobile {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  color: var(--primary);
 }
 
 .sidebar-section {
@@ -294,9 +320,7 @@ body {
   color: var(--primary-light);
 }
 
-/* ========================================================
-   ESTILOS PASTEL INDIVIDUALES PARA BOTONES DE CARPETAS (SIDEBAR)
-   ======================================================== */
+/* Botones Pasteles en Sidebar */
 .folder-btn.folder-all i { color: var(--pastel-all-txt); }
 .folder-btn.folder-all.active {
   background-color: var(--pastel-all-bg);
@@ -401,6 +425,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 
 .breadcrumb {
@@ -409,6 +434,7 @@ body {
   gap: 8px;
   font-size: 0.825rem;
   color: var(--text-muted);
+  flex-wrap: wrap;
 }
 
 .current-path {
@@ -426,6 +452,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 2px;
+  flex-shrink: 0;
 }
 
 .view-btn {
@@ -452,7 +479,7 @@ body {
 
 .search-box {
   flex: 1;
-  min-width: 240px;
+  min-width: 220px;
   position: relative;
 }
 
@@ -484,6 +511,7 @@ select {
   background-color: var(--surface);
   outline: none;
   cursor: pointer;
+  background-image: none;
 }
 
 /* Botones */
@@ -544,9 +572,7 @@ select {
   flex-wrap: wrap;
 }
 
-/* ========================================================
-   BADGES PASTEL EXCLUSIVOS PARA CARPETAS / RUTAS
-   ======================================================== */
+/* Badges Pasteles para Carpetas */
 .tag-pastel-planeaciones {
   font-size: 0.68rem;
   font-weight: 700;
@@ -597,9 +623,6 @@ select {
   border: 1px solid var(--pastel-public-border);
 }
 
-/* ========================================================
-   BADGE PASTEL UNIFORME PARA TODOS LOS GRADOS ESCOLARES
-   ======================================================== */
 .tag-pastel-grade {
   font-size: 0.68rem;
   font-weight: 600;
@@ -610,7 +633,7 @@ select {
   border: 1px solid var(--pastel-grade-border);
 }
 
-/* Fecha y radicado sutiles */
+/* Fecha y radicado */
 .doc-meta-subtle {
   display: flex;
   align-items: center;
@@ -656,6 +679,7 @@ select {
 .file-attachment-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
   padding: 6px 10px;
   background-color: var(--surface-alt);
@@ -665,8 +689,23 @@ select {
   border: 1px solid var(--border);
 }
 
-.file-attachment-badge i {
-  font-size: 1.1rem;
+.file-attachment-badge-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savings-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #15803d;
+  background-color: #dcfce7;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .doc-card-footer {
@@ -728,6 +767,7 @@ select {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .db-table {
@@ -735,6 +775,7 @@ select {
   border-collapse: collapse;
   font-size: 0.85rem;
   text-align: left;
+  min-width: 650px;
 }
 
 .db-table th {
@@ -744,11 +785,13 @@ select {
   text-transform: uppercase;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .db-table td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 /* Modales & Dropzone */
@@ -759,7 +802,7 @@ select {
   backdrop-filter: blur(3px);
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: 1rem;
   z-index: 100;
   opacity: 0;
   pointer-events: none;
@@ -906,7 +949,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
+  padding: 0.65rem 0.85rem;
   background-color: var(--pastel-public-bg);
   border: 1px solid var(--pastel-public-border);
   border-radius: var(--radius-sm);
@@ -915,7 +958,24 @@ select {
   margin-top: 4px;
 }
 
-.btn-remove-file { background: none; border: none; cursor: pointer; color: var(--pastel-public-txt); }
+.file-badge-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-badge-info i {
+  font-size: 1.5rem;
+}
+
+.compression-stats {
+  display: block;
+  font-size: 0.7rem;
+  color: #047857;
+  font-weight: 600;
+}
+
+.btn-remove-file { background: none; border: none; cursor: pointer; color: var(--pastel-public-txt); font-size: 1rem; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
 
 .empty-state {
@@ -930,7 +990,105 @@ select {
 
 .hidden { display: none !important; }
 
-@media (max-width: 860px) {
-  .app-layout { grid-template-columns: 1fr; }
-  .form-grid-3, .form-grid-2 { grid-template-columns: 1fr; }
+/* ========================================================
+   RESPONSIVE DESIGN PARA CELULARES Y TABLETS
+   ======================================================== */
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-mobile-toggle {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 290px;
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-100%);
+    overflow-y: auto;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-top-mobile {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 25;
+  }
+
+  .sidebar-overlay:not(.hidden) {
+    display: block !important;
+  }
+
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .nav-brand h1 {
+    font-size: 0.95rem;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .btn-upload-nav span {
+    display: none;
+  }
+
+  .btn-upload-nav {
+    padding: 0.6rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .form-grid-3, .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-info {
+    display: none;
+  }
+
+  .user-chip {
+    padding: 2px;
+    background: transparent;
+    border: none;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group, select {
+    width: 100%;
+  }
+
+  .breadcrumb-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }

@@ -1,8 +1,8 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Colores pastel diferenciados exclusivamente para Carpetas/Rutas
- * - Color pastel uniforme y neutro para Grados Escolares
- * - Almacenamiento binario en IndexedDB y descarga directa del archivo original
+ * - Compresión Deflate Máxima (JSZip) al subir para no saturar memoria
+ * - Descompresión al vuelo al descargar
+ * - Responsive Móvil y guardado de fecha/hora
  */
 
 // 1. Usuarios Oficiales con Claves
@@ -17,10 +17,10 @@ const USERS = {
 let currentUser = null;
 
 // ==========================================
-// 2. MOTOR DE ALMACENAMIENTO INDEXEDDB PARA ARCHIVOS REALES
+// 2. MOTOR DE ALMACENAMIENTO INDEXEDDB PARA ARCHIVOS COMPRIMIDOS
 // ==========================================
-const DB_NAME = "GaleanoFileDB";
-const STORE_NAME = "real_files";
+const DB_NAME = "GaleanoCompressedDB";
+const STORE_NAME = "compressed_files";
 
 function openIndexedDB() {
   return new Promise((resolve, reject) => {
@@ -36,18 +36,18 @@ function openIndexedDB() {
   });
 }
 
-async function saveFileToIndexedDB(id, fileBlob, fileName, fileType) {
+async function saveCompressedFileToDB(id, zipBlob, originalName, mimeType) {
   const db = await openIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    store.put({ id, fileBlob, fileName, fileType });
+    store.put({ id, zipBlob, originalName, mimeType });
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 }
 
-async function getFileFromIndexedDB(id) {
+async function getCompressedFileFromDB(id) {
   const db = await openIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
@@ -58,7 +58,7 @@ async function getFileFromIndexedDB(id) {
   });
 }
 
-async function deleteFileFromIndexedDB(id) {
+async function deleteFileFromDB(id) {
   const db = await openIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -69,7 +69,7 @@ async function deleteFileFromIndexedDB(id) {
   });
 }
 
-// 3. Base de datos inicial con Fecha y Hora
+// 3. Base de datos inicial
 const initialDocuments = [
   {
     id: "MG-PRI-001",
@@ -82,6 +82,8 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Planeacion_Matematicas_3_Jessica.pdf",
     fileSize: "1.4 MB",
+    compressedSize: "420 KB",
+    ratio: "70%",
     uploadedAt: "05/10/2026, 09:15 a. m.",
     notes: "Planeación bimestral propia del grado tercero."
   },
@@ -96,6 +98,8 @@ const initialDocuments = [
     isPublic: true,
     fileName: "Manual_Convivencia_Galeano_2026.pdf",
     fileSize: "3.2 MB",
+    compressedSize: "1.1 MB",
+    ratio: "65%",
     uploadedAt: "05/10/2026, 08:30 a. m.",
     notes: "Documento oficial compartido para todo el cuerpo docente."
   },
@@ -110,6 +114,8 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Taller_Ciencias_4_Yuri.docx",
     fileSize: "680 KB",
+    compressedSize: "190 KB",
+    ratio: "72%",
     uploadedAt: "05/10/2026, 11:40 a. m.",
     notes: "Guías con actividades prácticas para laboratorio escolar."
   },
@@ -124,15 +130,17 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Planilla_Espanol_1_Elcy.xlsx",
     fileSize: "512 KB",
+    compressedSize: "135 KB",
+    ratio: "74%",
     uploadedAt: "05/10/2026, 02:10 p. m.",
     notes: "Valoración formativa de trazo y comprensión de fonemas."
   }
 ];
 
-// Carga de metadatos desde LocalStorage
+// Carga de metadatos
 let documents = [];
 try {
-  const stored = localStorage.getItem('galeano_db_clean_records');
+  const stored = localStorage.getItem('galeano_db_clean_records_v4');
   documents = stored ? JSON.parse(stored) : initialDocuments;
 } catch (e) {
   console.warn("Inicializando base de datos local:", e);
@@ -141,21 +149,21 @@ try {
 
 function saveDocuments() {
   try {
-    localStorage.setItem('galeano_db_clean_records', JSON.stringify(documents));
+    localStorage.setItem('galeano_db_clean_records_v4', JSON.stringify(documents));
   } catch (err) {
     alert("Error al actualizar la base de datos.");
   }
   renderApp();
 }
 
-// 4. Variables de Estado de Filtros
+// 4. Variables de Estado
 let currentTeacherFilter = "all";
 let currentFolderFilter = "all";
 let currentGradeFilter = "";
 let currentSubjectFilter = "";
 let currentSearch = "";
 let currentView = "cards";
-let uploadedFileMeta = null;
+let processedUploadData = null; // Almacenará { zipBlob, originalName, origSize, compSize, ratio, mimeType }
 
 // 5. Elementos del DOM
 const loginScreen = document.getElementById("loginScreen");
@@ -168,10 +176,14 @@ const btnLogout = document.getElementById("btnLogout");
 const navUserName = document.getElementById("navUserName");
 const navUserRole = document.getElementById("navUserRole");
 const navAvatar = document.getElementById("navAvatar");
-const roleDescription = document.getElementById("roleDescription");
 const topSubtitle = document.getElementById("topSubtitle");
 const adminTeacherSection = document.getElementById("adminTeacherSection");
 const labelAllFolders = document.getElementById("labelAllFolders");
+
+const mainSidebar = document.getElementById("mainSidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+const btnToggleSidebar = document.getElementById("btnToggleSidebar");
+const btnCloseSidebar = document.getElementById("btnCloseSidebar");
 
 const documentsContainer = document.getElementById("documentsContainer");
 const tableContainer = document.getElementById("tableContainer");
@@ -192,6 +204,7 @@ const fileInput = document.getElementById("fileInput");
 const dropText = document.getElementById("dropText");
 const fileSelectedBadge = document.getElementById("fileSelectedBadge");
 const selectedFileName = document.getElementById("selectedFileName");
+const compressionStats = document.getElementById("compressionStats");
 const btnRemoveFile = document.getElementById("btnRemoveFile");
 
 const editDocId = document.getElementById("editDocId");
@@ -271,25 +284,39 @@ function updateUIForUser() {
     adminTeacherSection.classList.remove("hidden");
     labelAllFolders.textContent = "Todos los Documentos";
     topSubtitle.textContent = `Panel Directivo • ${currentUser.name}`;
-    roleDescription.innerHTML = `<strong>Supervisión Total:</strong> Puedes consultar, descargar y revisar absolutamente todos los documentos de las docentes con su fecha exacta.`;
     docTeacherSelect.disabled = false;
   } else {
     adminTeacherSection.classList.add("hidden");
     labelAllFolders.textContent = `Mis Documentos (${currentUser.name})`;
     topSubtitle.textContent = `Espacio de Trabajo • ${currentUser.name}`;
-    roleDescription.innerHTML = `<strong>Espacio Docente:</strong> Visualización privada de tus registros y acceso a la carpeta compartida.`;
     docTeacherSelect.value = currentUser.name;
     docTeacherSelect.disabled = true;
   }
 }
 
-// 7. Eventos de la Interfaz
+// 7. Eventos & Menú Móvil
 function setupEvents() {
+  // Toggle móvil
+  btnToggleSidebar.addEventListener("click", () => {
+    mainSidebar.classList.add("mobile-open");
+    sidebarOverlay.classList.remove("hidden");
+  });
+
+  function closeMobileSidebar() {
+    mainSidebar.classList.remove("mobile-open");
+    sidebarOverlay.classList.add("hidden");
+  }
+
+  btnCloseSidebar.addEventListener("click", closeMobileSidebar);
+  sidebarOverlay.addEventListener("click", closeMobileSidebar);
+
+  // Filtros Sidebar
   document.querySelectorAll(".teacher-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".teacher-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       currentTeacherFilter = btn.dataset.teacher;
+      closeMobileSidebar();
       renderApp();
     });
   });
@@ -299,6 +326,7 @@ function setupEvents() {
       document.querySelectorAll(".folder-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       currentFolderFilter = btn.dataset.folder;
+      closeMobileSidebar();
       renderApp();
     });
   });
@@ -341,15 +369,64 @@ function setupEvents() {
     if (e.target === modalDoc) closeModal();
   });
 
-  fileInput.addEventListener("change", handleFileSelect);
+  fileInput.addEventListener("change", handleFileCompressAndSelect);
   btnRemoveFile.addEventListener("click", resetFileInput);
   docForm.addEventListener("submit", handleFormSubmit);
 }
 
-// 8. Modal Crear y Editar
+// 8. Compresión Máxima en el Navegador con JSZip
+async function handleFileCompressAndSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  dropText.textContent = "Comprimiendo archivo al máximo...";
+
+  try {
+    const zip = new JSZip();
+    // Añadimos el archivo original al zip con compresión DEFLATE nivel 9
+    zip.file(file.name, file, {
+      compression: "DEFLATE",
+      compressionOptions: { level: 9 }
+    });
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+
+    const origSize = file.size;
+    const compSize = zipBlob.size;
+    const savingsPercent = Math.max(0, Math.round(((origSize - compSize) / origSize) * 100));
+
+    processedUploadData = {
+      zipBlob: zipBlob,
+      originalName: file.name,
+      fileSize: formatBytes(origSize),
+      compressedSize: formatBytes(compSize),
+      ratio: `${savingsPercent}%`,
+      mimeType: file.type || "application/octet-stream"
+    };
+
+    selectedFileName.textContent = `${file.name}`;
+    compressionStats.textContent = `Optimizado: ${processedUploadData.fileSize} ➔ ${processedUploadData.compressedSize} (Ahorro del ${processedUploadData.ratio})`;
+    fileSelectedBadge.classList.remove("hidden");
+    dropText.textContent = "¡Archivo comprimido y listo!";
+
+  } catch (error) {
+    console.error("Error comprimiendo archivo:", error);
+    alert("Hubo un problema al comprimir el archivo.");
+    resetFileInput();
+  }
+}
+
+function resetFileInput() {
+  fileInput.value = "";
+  processedUploadData = null;
+  fileSelectedBadge.classList.add("hidden");
+  dropText.textContent = "Clic o arrastra el archivo aquí";
+}
+
+// 9. Modal Crear / Editar
 function openModalForCreate() {
   editDocId.value = "";
-  modalTitle.textContent = "Subir Documento a la BD";
+  modalTitle.textContent = "Subir Documento Comprimido";
   docForm.reset();
   resetFileInput();
 
@@ -388,13 +465,9 @@ window.editDoc = function(id) {
   document.getElementById("docNotes").value = doc.notes || "";
   docIsPublicCheck.checked = Boolean(doc.isPublic);
 
-  uploadedFileMeta = {
-    name: doc.fileName,
-    size: doc.fileSize,
-    rawFile: null
-  };
-
-  selectedFileName.textContent = `${doc.fileName} (${doc.fileSize})`;
+  processedUploadData = null;
+  selectedFileName.textContent = `${doc.fileName}`;
+  compressionStats.textContent = `Tamaño optimizado: ${doc.compressedSize || doc.fileSize}`;
   fileSelectedBadge.classList.remove("hidden");
   dropText.textContent = "Archivo conservado (clic para cambiarlo)";
 
@@ -407,29 +480,7 @@ function closeModal() {
   resetFileInput();
 }
 
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  uploadedFileMeta = {
-    name: file.name,
-    size: formatBytes(file.size),
-    rawFile: file
-  };
-
-  selectedFileName.textContent = `${file.name} (${uploadedFileMeta.size})`;
-  fileSelectedBadge.classList.remove("hidden");
-  dropText.textContent = "Archivo listo para guardar";
-}
-
-function resetFileInput() {
-  fileInput.value = "";
-  uploadedFileMeta = null;
-  fileSelectedBadge.classList.add("hidden");
-  dropText.textContent = "Clic o arrastra el archivo aquí";
-}
-
-// 9. Guardado de Documentos
+// 10. Guardar en Base de Datos
 async function handleFormSubmit(e) {
   e.preventDefault();
 
@@ -464,20 +515,23 @@ async function handleFormSubmit(e) {
     const docIndex = documents.findIndex(d => d.id === editDocId.value);
     if (docIndex !== -1) {
       documents[docIndex] = { ...documents[docIndex], ...docData };
-      if (uploadedFileMeta && uploadedFileMeta.rawFile) {
-        documents[docIndex].fileName = uploadedFileMeta.name;
-        documents[docIndex].fileSize = uploadedFileMeta.size;
-        await saveFileToIndexedDB(
-          documents[docIndex].id, 
-          uploadedFileMeta.rawFile, 
-          uploadedFileMeta.name, 
-          uploadedFileMeta.rawFile.type
+      if (processedUploadData) {
+        documents[docIndex].fileName = processedUploadData.originalName;
+        documents[docIndex].fileSize = processedUploadData.fileSize;
+        documents[docIndex].compressedSize = processedUploadData.compressedSize;
+        documents[docIndex].ratio = processedUploadData.ratio;
+
+        await saveCompressedFileToDB(
+          documents[docIndex].id,
+          processedUploadData.zipBlob,
+          processedUploadData.originalName,
+          processedUploadData.mimeType
         );
       }
     }
   } else {
-    if (!uploadedFileMeta || !uploadedFileMeta.rawFile) {
-      alert("Por favor selecciona un archivo (Excel, PDF, Word, etc.) para subir.");
+    if (!processedUploadData) {
+      alert("Por favor selecciona un archivo para comprimir y subir.");
       return;
     }
 
@@ -485,16 +539,19 @@ async function handleFormSubmit(e) {
     const newDoc = {
       id: newId,
       ...docData,
-      fileName: uploadedFileMeta.name,
-      fileSize: uploadedFileMeta.size,
+      fileName: processedUploadData.originalName,
+      fileSize: processedUploadData.fileSize,
+      compressedSize: processedUploadData.compressedSize,
+      ratio: processedUploadData.ratio,
       uploadedAt: formattedDateTime
     };
 
-    await saveFileToIndexedDB(
-      newId, 
-      uploadedFileMeta.rawFile, 
-      uploadedFileMeta.name, 
-      uploadedFileMeta.rawFile.type
+    // Guardar el binario zip ultra-comprimido en IndexedDB
+    await saveCompressedFileToDB(
+      newId,
+      processedUploadData.zipBlob,
+      processedUploadData.originalName,
+      processedUploadData.mimeType
     );
 
     documents.unshift(newDoc);
@@ -502,44 +559,51 @@ async function handleFormSubmit(e) {
 
   saveDocuments();
   closeModal();
-  alert(`✅ Documento "${docData.title}" guardado exitosamente.\nRegistrado el: ${formattedDateTime}`);
+  alert(`✅ Documento "${docData.title}" comprimido y guardado con éxito.`);
 }
 
-// 10. Eliminar Registro
+// 11. Eliminar Registro
 window.deleteDoc = async function(id) {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
   if (!isPrivileged) {
-    alert("Acción restringida: Como docente no tienes permisos para eliminar registros. Solo Rectoría o el Administrador pueden suprimir datos.");
+    alert("Acción restringida: Como docente no puedes eliminar registros. Solo Rectoría o el Administrador.");
     return;
   }
 
   if (confirm(`¿Confirmas la eliminación del documento con ID ${id}?`)) {
     documents = documents.filter(d => d.id !== id);
-    await deleteFileFromIndexedDB(id);
+    await deleteFileFromDB(id);
     saveDocuments();
   }
 };
 
-// 11. Descarga Exacta del Archivo Subido
+// 12. Descompresión Automática y Descarga del Archivo Original
 window.downloadDoc = async function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
 
   try {
-    const storedFile = await getFileFromIndexedDB(id);
+    const record = await getCompressedFileFromDB(id);
 
-    if (storedFile && storedFile.fileBlob) {
-      const url = URL.createObjectURL(storedFile.fileBlob);
-      triggerDownload(url, storedFile.fileName || doc.fileName);
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      return;
+    if (record && record.zipBlob) {
+      // Descomprimir al vuelo con JSZip
+      const zip = await JSZip.loadAsync(record.zipBlob);
+      const zipFile = zip.file(record.originalName);
+
+      if (zipFile) {
+        const uncompressedBlob = await zipFile.async("blob");
+        const url = URL.createObjectURL(uncompressedBlob);
+        triggerDownload(url, record.originalName);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        return;
+      }
     }
 
-    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real y al hacer clic en este botón se descargará exactamente el archivo que subiste.`);
+    alert(`Nota: "${doc.fileName}" es un registro inicial de demostración.\n\nSube un archivo real y al hacer clic en este botón se descomprimirá y descargará intacto.`);
 
   } catch (error) {
-    console.error("Error al acceder a IndexedDB:", error);
-    alert("Hubo un problema al recuperar el archivo original.");
+    console.error("Error descomprimiendo archivo:", error);
+    alert("Hubo un error al descomprimir el archivo original.");
   }
 };
 
@@ -552,7 +616,7 @@ function triggerDownload(url, filename) {
   document.body.removeChild(a);
 }
 
-// 12. Filtrado
+// 13. Filtrado
 function getFilteredDocuments() {
   if (!currentUser) return [];
 
@@ -600,7 +664,7 @@ function getFilteredDocuments() {
   });
 }
 
-// 13. Renderizado de Interfaz con Estilo Pastel
+// 14. Renderizado
 function renderApp() {
   updateCounts();
   updateBreadcrumb();
@@ -627,16 +691,10 @@ function renderApp() {
       <article class="doc-card">
         <div class="doc-card-header">
           <div class="badges-group">
-            <!-- Carpeta en Color Pastel Exclusivo -->
             <span class="${folderPastelClass}">${formatFolder(doc.folder)}</span>
-            
-            <!-- Grado en Color Pastel Uniforme -->
             <span class="tag-pastel-grade">${doc.grade}</span>
-
-            <!-- Compartido público en Verde Menta Pastel -->
             ${doc.isPublic ? '<span class="tag-pastel-public"><i class="ph-bold ph-globe"></i> Público</span>' : ''}
           </div>
-          <!-- Fecha y Radicado Sutiles -->
           <div class="doc-meta-subtle">
             <span>${doc.uploadedAt || 'Reciente'}</span>
             <span class="dot-separator">•</span>
@@ -656,9 +714,13 @@ function renderApp() {
             <span><strong>Materia:</strong> ${escapeHTML(doc.subject)} • ${doc.period}</span>
           </div>
           
+          <!-- Badge de Archivo con Ahorro de Compresión -->
           <div class="file-attachment-badge">
-            <i class="${fileIcon}"></i>
-            <span>${escapeHTML(doc.fileName)} <small>(${doc.fileSize})</small></span>
+            <div class="file-attachment-badge-left">
+              <i class="${fileIcon}"></i>
+              <span>${escapeHTML(doc.fileName)}</span>
+            </div>
+            ${doc.ratio ? `<span class="savings-pill"><i class="ph-bold ph-file-zip"></i> -${doc.ratio}</span>` : ''}
           </div>
 
           ${doc.notes ? `
@@ -670,8 +732,8 @@ function renderApp() {
         </div>
 
         <div class="doc-card-footer">
-          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descargar archivo original">
-            <i class="ph-bold ph-download-simple"></i> Descargar Archivo
+          <button onclick="downloadDoc('${doc.id}')" class="btn-download-action" title="Descomprimir y descargar archivo original">
+            <i class="ph-bold ph-download-simple"></i> Descargar
           </button>
           
           <div class="action-buttons">
@@ -710,10 +772,12 @@ function renderApp() {
         <td>${escapeHTML(doc.subject)}</td>
         <td><span class="${folderPastelClass}">${formatFolder(doc.folder)}</span></td>
         <td><small><i class="ph-bold ph-clock"></i> ${doc.uploadedAt || "Reciente"}</small></td>
-        <td><small><i class="${fileIcon}"></i> ${escapeHTML(doc.fileName)}</small></td>
+        <td>
+          <small><i class="${fileIcon}"></i> ${doc.compressedSize || doc.fileSize} ${doc.ratio ? `(-${doc.ratio})` : ''}</small>
+        </td>
         <td>
           <div class="action-buttons">
-            <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descargar">
+            <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descomprimir y descargar">
               <i class="ph-bold ph-download-simple"></i>
             </button>
             ${canEdit ? `
@@ -751,7 +815,7 @@ function updateBreadcrumb() {
   currentPathText.textContent = `${teacherText} • ${folderMap[currentFolderFilter] || currentFolderFilter}`;
 }
 
-// 14. Actualización de Contadores
+// 15. Contadores
 function updateCounts() {
   const isPrivileged = currentUser && (currentUser.role === "admin" || currentUser.role === "rectora");
 
@@ -767,7 +831,7 @@ function updateCounts() {
   document.getElementById("count-public").textContent = documents.filter(d => d.isPublic).length;
 }
 
-// Asignación de Clases Pastel
+// Auxiliares
 function getFolderPastelClass(folderKey) {
   const map = {
     planeaciones: "tag-pastel-planeaciones",
