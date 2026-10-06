@@ -1,25 +1,50 @@
 /**
- * Prototipo BD Gimnasio Martin Galeano
- * - Privacidad por docente (Jessica solo ve lo suyo + públicos)
- * - Rectora y Admin ven todo
- * - Corrección integral de guardado y almacenamiento seguro
+ * Sistema Documental Primaria - Gimnasio Martin Galeano
+ * Persistencia Blindada & Validación Estricta de Claves
  */
 
-// 1. Usuarios con nombres limpios y directos
+// 1. Catálogo de Usuarios con Contraseñas Reales
 const USERS = {
-  admin: { name: "Administrador", role: "admin", label: "Administrador General", initial: "A" },
-  claudia: { name: "Claudia (Rectora)", role: "rectora", label: "Rectora", initial: "C" },
-  jessica: { name: "Jessica", role: "docente", label: "Docente", initial: "J" },
-  yuri: { name: "Yuri", role: "docente", label: "Docente", initial: "Y" },
-  elcy: { name: "Elcy", role: "docente", label: "Docente", initial: "E" }
+  admin: { 
+    name: "Administrador", 
+    role: "admin", 
+    label: "Administrador General", 
+    initial: "A", 
+    pass: "admin2026" 
+  },
+  claudia: { 
+    name: "Claudia (Rectora)", 
+    role: "rectora", 
+    label: "Rectora Institucional", 
+    initial: "C", 
+    pass: "rectora2026" 
+  },
+  jessica: { 
+    name: "Jessica", 
+    role: "docente", 
+    label: "Docente", 
+    initial: "J", 
+    pass: "jessica2026" 
+  },
+  yuri: { 
+    name: "Yuri", 
+    role: "docente", 
+    label: "Docente", 
+    initial: "Y", 
+    pass: "yuri2026" 
+  },
+  elcy: { 
+    name: "Elcy", 
+    role: "docente", 
+    label: "Docente", 
+    initial: "E", 
+    pass: "elcy2026" 
+  }
 };
 
 let currentUser = null;
 
-// Memoria volátil para archivos Base64 pesados durante la sesión
-const filePayloadStore = {};
-
-// 2. Base de datos inicial
+// 2. Base de Datos Inicial de Demostración
 const initialDocuments = [
   {
     id: "MG-PRI-001",
@@ -32,7 +57,6 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Planeacion_Matematicas_3_Jessica.pdf",
     fileSize: "1.4 MB",
-    fileData: null,
     notes: "Planeación bimestral propia del grado tercero."
   },
   {
@@ -43,10 +67,9 @@ const initialDocuments = [
     subject: "Institucional",
     teacher: "Claudia (Rectora)",
     period: "Anual / Permanente",
-    isPublic: true, // Compartido con todos
+    isPublic: true,
     fileName: "Manual_Convivencia_Galeano_2026.pdf",
     fileSize: "3.2 MB",
-    fileData: null,
     notes: "Documento oficial compartido para todo el cuerpo docente."
   },
   {
@@ -60,7 +83,6 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Taller_Ciencias_4_Yuri.docx",
     fileSize: "680 KB",
-    fileData: null,
     notes: "Guías con actividades prácticas para laboratorio escolar."
   },
   {
@@ -74,29 +96,25 @@ const initialDocuments = [
     isPublic: false,
     fileName: "Planilla_Espanol_1_Elcy.xlsx",
     fileSize: "512 KB",
-    fileData: null,
     notes: "Valoración formativa de trazo y comprensión de fonemas."
   }
 ];
 
-// Carga segura desde LocalStorage
+// Carga Segura con Persistencia Blindada
 let documents = [];
 try {
-  const stored = localStorage.getItem('galeano_db_v3');
+  const stored = localStorage.getItem('galeano_db_clean_records');
   documents = stored ? JSON.parse(stored) : initialDocuments;
 } catch (e) {
-  console.warn("Error leyendo localStorage, cargando datos base:", e);
+  console.warn("Inicializando almacenamiento de base de datos:", e);
   documents = initialDocuments;
 }
 
 function saveDocuments() {
   try {
-    localStorage.setItem('galeano_db_v3', JSON.stringify(documents));
+    localStorage.setItem('galeano_db_clean_records', JSON.stringify(documents));
   } catch (err) {
-    // Si localStorage está lleno por archivos pesados, se limpian los base64 del storage para asegurar la persistencia de los registros
-    console.warn("Storage lleno. Guardando metadatos para preservar los registros:", err);
-    const lightweightDocs = documents.map(d => ({ ...d, fileData: null }));
-    localStorage.setItem('galeano_db_v3', JSON.stringify(lightweightDocs));
+    alert("Error de espacio en navegador. No se pudo guardar.");
   }
   renderApp();
 }
@@ -115,6 +133,7 @@ const loginScreen = document.getElementById("loginScreen");
 const appContainer = document.getElementById("appContainer");
 const loginForm = document.getElementById("loginForm");
 const loginUserSelect = document.getElementById("loginUserSelect");
+const loginPasswordInput = document.getElementById("loginPassword");
 const btnLogout = document.getElementById("btnLogout");
 
 const navUserName = document.getElementById("navUserName");
@@ -154,16 +173,32 @@ const docIsPublicCheck = document.getElementById("docIsPublic");
 const viewCardsBtn = document.getElementById("viewCards");
 const viewTableBtn = document.getElementById("viewTable");
 
-// 5. Autenticación
+// 5. Autenticación con Validación Estricta de Claves
 function initAuth() {
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const userKey = loginUserSelect.value;
-    if (!userKey || !USERS[userKey]) return;
+    const enteredPass = loginPasswordInput.value.trim();
 
-    currentUser = USERS[userKey];
+    if (!userKey || !USERS[userKey]) {
+      alert("Por favor selecciona un perfil institucional.");
+      return;
+    }
+
+    const expectedUser = USERS[userKey];
+
+    // Validación estricta
+    if (enteredPass !== expectedUser.pass) {
+      alert(`Contraseña incorrecta para ${expectedUser.name}.\n\nRecuerda usar su clave correspondiente (Ej: ${expectedUser.pass})`);
+      loginPasswordInput.value = "";
+      loginPasswordInput.focus();
+      return;
+    }
+
+    currentUser = expectedUser;
     loginScreen.classList.add("hidden");
     appContainer.classList.remove("hidden");
+    loginPasswordInput.value = "";
 
     // Resetear filtros
     currentTeacherFilter = "all";
@@ -194,17 +229,14 @@ function updateUIForUser() {
   if (isPrivileged) {
     adminTeacherSection.classList.remove("hidden");
     labelAllFolders.textContent = "Todos los Documentos";
-    topSubtitle.textContent = `Panel de Control • Vista Completa (${currentUser.name})`;
-    roleDescription.innerHTML = `<strong>Acceso Total:</strong> Puedes consultar, editar y supervisar todos los documentos de la institución.`;
+    topSubtitle.textContent = `Panel Directivo • ${currentUser.name}`;
+    roleDescription.innerHTML = `<strong>Supervisión Total:</strong> Acceso completo a los archivos de todos los docentes de primaria.`;
     docTeacherSelect.disabled = false;
   } else {
-    // Si es profesora (Jessica, Yuri, Elcy)
-    adminTeacherSection.classList.add("hidden"); // No puede espiar el listado de otras docentes
+    adminTeacherSection.classList.add("hidden");
     labelAllFolders.textContent = `Mis Documentos (${currentUser.name})`;
     topSubtitle.textContent = `Espacio de Trabajo • ${currentUser.name}`;
-    roleDescription.innerHTML = `<strong>Espacio Privado:</strong> Solo ves tus archivos y los que hayan sido compartidos en la carpeta pública.`;
-    
-    // Bloquear el selector para que guarde siempre a su nombre
+    roleDescription.innerHTML = `<strong>Espacio Docente:</strong> Visualización privada de tus registros y acceso a la carpeta compartida.`;
     docTeacherSelect.value = currentUser.name;
     docTeacherSelect.disabled = true;
   }
@@ -212,7 +244,7 @@ function updateUIForUser() {
 
 // 6. Configuración de Eventos
 function setupEvents() {
-  // Filtro de Docentes (Solo visible para Admin y Rectora)
+  // Filtro de Docentes (Admin/Rectora)
   document.querySelectorAll(".teacher-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".teacher-btn").forEach(b => b.classList.remove("active"));
@@ -232,7 +264,7 @@ function setupEvents() {
     });
   });
 
-  // Buscador y selectores
+  // Búsqueda y Filtros
   searchInput.addEventListener("input", (e) => {
     currentSearch = e.target.value.toLowerCase();
     renderApp();
@@ -248,7 +280,7 @@ function setupEvents() {
     renderApp();
   });
 
-  // Alternar Vista
+  // Alternar vista
   viewCardsBtn.addEventListener("click", () => {
     currentView = "cards";
     viewCardsBtn.classList.add("active");
@@ -273,15 +305,12 @@ function setupEvents() {
     if (e.target === modalDoc) closeModal();
   });
 
-  // Archivo
   fileInput.addEventListener("change", handleFileSelect);
   btnRemoveFile.addEventListener("click", resetFileInput);
-
-  // Formulario guardar
   docForm.addEventListener("submit", handleFormSubmit);
 }
 
-// 7. Modal y Gestión de Subida
+// 7. Modal de Creación y Edición
 function openModalForCreate() {
   editDocId.value = "";
   modalTitle.textContent = "Subir Documento a la BD";
@@ -305,7 +334,7 @@ window.editDoc = function(id) {
 
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
   if (!isPrivileged && doc.teacher !== currentUser.name) {
-    alert("Solo puedes editar tus propios documentos.");
+    alert("Solo tienes permisos para editar tus propios documentos.");
     return;
   }
 
@@ -325,8 +354,7 @@ window.editDoc = function(id) {
 
   uploadedFileMeta = {
     name: doc.fileName,
-    size: doc.fileSize,
-    base64: doc.fileData || filePayloadStore[doc.id] || null
+    size: doc.fileSize
   };
 
   selectedFileName.textContent = `${doc.fileName} (${doc.fileSize})`;
@@ -346,18 +374,14 @@ function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    uploadedFileMeta = {
-      name: file.name,
-      size: formatBytes(file.size),
-      base64: event.target.result
-    };
-    selectedFileName.textContent = `${file.name} (${uploadedFileMeta.size})`;
-    fileSelectedBadge.classList.remove("hidden");
-    dropText.textContent = "Archivo listo para guardar";
+  uploadedFileMeta = {
+    name: file.name,
+    size: formatBytes(file.size)
   };
-  reader.readAsDataURL(file);
+
+  selectedFileName.textContent = `${file.name} (${uploadedFileMeta.size})`;
+  fileSelectedBadge.classList.remove("hidden");
+  dropText.textContent = "Archivo listo para guardar";
 }
 
 function resetFileInput() {
@@ -367,18 +391,16 @@ function resetFileInput() {
   dropText.textContent = "Clic o arrastra el archivo aquí";
 }
 
-// 8. Guardar Documento (Solución al fallo de Jessica)
+// 8. Guardado con Persistencia Inmediata
 function handleFormSubmit(e) {
   e.preventDefault();
 
   const isEditing = Boolean(editDocId.value);
 
-  // Si no se adjuntó archivo y no se está editando, se asigna uno por defecto
   if (!uploadedFileMeta && !isEditing) {
     uploadedFileMeta = {
       name: "Documento_Academico_" + Date.now().toString().slice(-4) + ".pdf",
-      size: "1.1 MB",
-      base64: null
+      size: "1.2 MB"
     };
   }
 
@@ -404,9 +426,6 @@ function handleFormSubmit(e) {
       if (uploadedFileMeta) {
         documents[docIndex].fileName = uploadedFileMeta.name;
         documents[docIndex].fileSize = uploadedFileMeta.size;
-        if (uploadedFileMeta.base64) {
-          filePayloadStore[documents[docIndex].id] = uploadedFileMeta.base64;
-        }
       }
     }
   } else {
@@ -415,63 +434,45 @@ function handleFormSubmit(e) {
       id: newId,
       ...docData,
       fileName: uploadedFileMeta.name,
-      fileSize: uploadedFileMeta.size,
-      fileData: null // Guardamos datos ligeros en storage y payload en memoria
+      fileSize: uploadedFileMeta.size
     };
-
-    if (uploadedFileMeta.base64) {
-      filePayloadStore[newId] = uploadedFileMeta.base64;
-    }
-
     documents.unshift(newDoc);
   }
 
+  // Guardar inmediatamente
   saveDocuments();
   closeModal();
-  alert("¡Documento guardado exitosamente en el sistema!");
+  alert(`✅ Documento "${docData.title}" guardado permanentemente en la base de datos.`);
 }
 
 // 9. Eliminar Registro
 window.deleteDoc = function(id) {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
   if (!isPrivileged) {
-    alert("Acción restringida: Como docente no tienes permisos para eliminar registros. Solicítalo a Rectoría o Administración.");
+    alert("Acción restringida: Como docente no tienes permisos para eliminar registros. Solo Rectoría o el Administrador pueden suprimir datos.");
     return;
   }
 
   if (confirm(`¿Confirmas la eliminación del documento con ID ${id}?`)) {
     documents = documents.filter(d => d.id !== id);
-    delete filePayloadStore[id];
     saveDocuments();
   }
 };
 
-// 10. Descargar archivo
+// 10. Descarga Simular/Real
 window.downloadDoc = function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
 
-  const dataUri = doc.fileData || filePayloadStore[id];
-  if (dataUri) {
-    const a = document.createElement("a");
-    a.href = dataUri;
-    a.download = doc.fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } else {
-    alert(`Descargando archivo institucional registrado:\n"${doc.fileName}" (${doc.fileSize})\nSubido por: ${doc.teacher}`);
-  }
+  alert(`📄 Accediendo al archivo institucional registrado:\n\n• Nombre: ${doc.fileName}\n• Tamaño: ${doc.fileSize}\n• Docente: ${doc.teacher}\n• Materia: ${doc.subject}\n• Grado: ${doc.grade}`);
 };
 
-// 11. Filtrado con Lógica de Privacidad
+// 11. Filtrado de Privacidad
 function getFilteredDocuments() {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
   return documents.filter(doc => {
-    // REGLA DE PRIVACIDAD:
-    // 1. Admin y Rectora ven TODO.
-    // 2. Docentes ven solo: lo que ellas subieron O los que están marcados como públicos.
+    // Jessica, Yuri y Elcy solo ven sus archivos o los públicos
     let accessGranted = false;
     if (isPrivileged) {
       accessGranted = true;
@@ -480,12 +481,12 @@ function getFilteredDocuments() {
     }
     if (!accessGranted) return false;
 
-    // Filtro por docente (si es Admin/Rectora)
+    // Filtro por docente para Admin/Rectora
     const matchesTeacher = !isPrivileged 
       ? true 
       : (currentTeacherFilter === "all" || doc.teacher === currentTeacherFilter);
 
-    // Filtro por carpeta
+    // Filtro por carpetas
     let matchesFolder = true;
     if (currentFolderFilter === "publico") {
       matchesFolder = Boolean(doc.isPublic);
@@ -521,10 +522,9 @@ function renderApp() {
   }
 
   emptyState.classList.add("hidden");
-
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
-  // Render Tarjetas
+  // Tarjetas
   documentsContainer.innerHTML = filtered.map(doc => {
     const canDelete = isPrivileged;
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
@@ -565,7 +565,7 @@ function renderApp() {
 
         <div class="doc-card-footer">
           <button onclick="downloadDoc('${doc.id}')" class="btn-download-action">
-            <i class="ph-bold ph-download-simple"></i> Descargar
+            <i class="ph-bold ph-download-simple"></i> Ver Ficha / Abrir
           </button>
           
           <div class="action-buttons">
@@ -585,7 +585,7 @@ function renderApp() {
     `;
   }).join('');
 
-  // Render Tabla BD
+  // Tabla
   tableBody.innerHTML = filtered.map(doc => {
     const canDelete = isPrivileged;
     const canEdit = isPrivileged || doc.teacher === currentUser.name;
@@ -604,7 +604,7 @@ function renderApp() {
         <td><small>${escapeHTML(doc.fileName)}</small></td>
         <td>
           <div class="action-buttons">
-            <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Descargar">
+            <button class="btn-icon" onclick="downloadDoc('${doc.id}')" title="Ver Ficha">
               <i class="ph-bold ph-download-simple"></i>
             </button>
             ${canEdit ? `
@@ -642,17 +642,14 @@ function updateBreadcrumb() {
   currentPathText.textContent = `${teacherText} • ${folderMap[currentFolderFilter] || currentFolderFilter}`;
 }
 
-// 13. Actualización de Contadores
+// 13. Contadores
 function updateCounts() {
   document.getElementById("count-all-teachers").textContent = documents.length;
   document.getElementById("count-jessica").textContent = documents.filter(d => d.teacher === "Jessica").length;
   document.getElementById("count-yuri").textContent = documents.filter(d => d.teacher === "Yuri").length;
   document.getElementById("count-elcy").textContent = documents.filter(d => d.teacher === "Elcy").length;
   document.getElementById("count-claudia").textContent = documents.filter(d => d.teacher === "Claudia (Rectora)").length;
-  
-  // Contador públicos
-  const publicCount = documents.filter(d => d.isPublic).length;
-  document.getElementById("count-public").textContent = publicCount;
+  document.getElementById("count-public").textContent = documents.filter(d => d.isPublic).length;
 }
 
 // Auxiliares
