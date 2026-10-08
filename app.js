@@ -1,12 +1,22 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Bóveda Confidencial protegida con clave: bobeda2026
- * - Organización por Años (2026, 2025, 2024, Histórico) y Subcarpetas Directivas
- * - Monitoreo constante de almacenamiento disponible (Límite 2 GB)
+ * - Usuario especial: Inducción Profesoras (Tour interactivo guiado)
+ * - Spotlight animado paso a paso con explicaciones pedagógicas
+ * - Bóveda de Rectoría protegida con clave: boveda2026
+ * - Límites: 15 MB docentes / 2 GB rectoría
  */
 
-// 1. Usuarios Oficiales
+// 1. Usuarios Oficiales con cuenta de Inducción
 const USERS = {
+  induccion: { 
+    name: "Inducción Profesoras", 
+    role: "induccion", 
+    label: "Módulo de Capacitación Docente", 
+    initial: "✨", 
+    pass: "induccion2026",
+    maxUploadBytes: 15 * 1024 * 1024,
+    maxUploadLabel: "15 MB"
+  },
   admin: { 
     name: "Administrador", 
     role: "admin", 
@@ -54,11 +64,11 @@ const USERS = {
   }
 };
 
-const BOVEDA_PASSWORD = "bobeda2026";
-const SYSTEM_STORAGE_CAPACITY_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB en bytes
+const BOVEDA_PASSWORD = "boveda2026";
+const SYSTEM_STORAGE_CAPACITY_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
 let currentUser = null;
-let isBovedaUnlocked = false; // Estado de la sesión para la bóveda
+let isBovedaUnlocked = false;
 
 // Registro de lecturas estilo WhatsApp
 let readReceipts = JSON.parse(localStorage.getItem('galeano_read_receipts_v1')) || {};
@@ -117,7 +127,7 @@ async function deleteFileFromDB(id) {
   });
 }
 
-// 3. Base de datos inicial incluyendo registros de Bóveda por años y subcarpetas
+// 3. Base de datos inicial
 const initialDocuments = [
   {
     id: "MG-PRI-001",
@@ -191,7 +201,6 @@ const initialDocuments = [
     uploadedAt: "05/10/2026, 02:10 p. m.",
     notes: "Valoración formativa de trazo y comprensión de fonemas."
   },
-  // DOCUMENTOS PROTEGIDOS EN BÓVEDA DIRECTIVA
   {
     id: "MG-BOV-001",
     title: "Acta Ordinaria N° 01 - Consejo Directivo 2026",
@@ -211,32 +220,12 @@ const initialDocuments = [
     isCompressed: true,
     uploadedAt: "06/10/2026, 09:00 a. m.",
     notes: "Aprobación del presupuesto operativo y plan de gestión institucional de Básica Primaria."
-  },
-  {
-    id: "MG-BOV-002",
-    title: "Consolidado Contable y Balances Financieros 2025",
-    folder: "boveda",
-    grade: "Directivo",
-    subject: "Directiva",
-    teacher: "Claudia (Rectora)",
-    period: "Anual / Permanente",
-    isPublic: false,
-    bovedaYear: "2025",
-    bovedaSubfolder: "financiero",
-    fileName: "Balance_General_Colegio_2025.xlsx",
-    fileSize: "4.1 MB",
-    compressedSize: "1.2 MB",
-    rawBytes: 4.1 * 1024 * 1024,
-    ratio: "71%",
-    isCompressed: true,
-    uploadedAt: "15/12/2025, 04:30 p. m.",
-    notes: "Balances de caja, costos y pagos auditados para la secretaría de educación."
   }
 ];
 
 let documents = [];
 try {
-  const stored = localStorage.getItem('galeano_db_clean_records_v7');
+  const stored = localStorage.getItem('galeano_db_clean_records_v8');
   documents = stored ? JSON.parse(stored) : initialDocuments;
 } catch (e) {
   console.warn("Inicializando base de datos local:", e);
@@ -245,29 +234,69 @@ try {
 
 function saveDocuments() {
   try {
-    localStorage.setItem('galeano_db_clean_records_v7', JSON.stringify(documents));
+    localStorage.setItem('galeano_db_clean_records_v8', JSON.stringify(documents));
   } catch (err) {
     alert("Error al actualizar la base de datos.");
   }
   renderApp();
 }
 
-// 4. Variables de Estado de Filtros
+// 4. Variables de Estado
 let currentTeacherFilter = "all";
 let currentFolderFilter = "all";
 let currentGradeFilter = "";
 let currentSubjectFilter = "";
 let currentSearch = "";
 let currentView = "cards";
-
-// Filtros específicos de la Bóveda
 let currentBovedaYear = "all";
 let currentBovedaSubfolder = "all";
-
 let processedUploadData = null;
 let currentPreviewDocId = null;
 
-// 5. Elementos del DOM
+// 5. Configuración de Pasos del Tour de Inducción
+const TOUR_STEPS = [
+  {
+    targetId: null, // Centro de pantalla
+    title: "¡Bienvenida al Sistema Documental!",
+    desc: "Este espacio fue diseñado para organizar de forma sencilla y privada el trabajo de Básica Primaria del Gimnasio Martin Galeano. Vamos a ver en 4 pasos cómo funciona.",
+    icon: "ph-bold ph-hand-waving",
+    action: () => {}
+  },
+  {
+    targetId: "sidebarFoldersSection",
+    title: "Tus Carpetas y Circulares",
+    desc: "En este menú lateral encuentras tus planeaciones, planillas y talleres. Además, en 'Institucional & Circulares' recibirás avisos de Rectoría con un globo rojo como en WhatsApp.",
+    icon: "ph-bold ph-folders",
+    action: () => {
+      document.getElementById("mainSidebar").classList.remove("mobile-open");
+    }
+  },
+  {
+    targetId: "generalFiltersBar",
+    title: "Filtros y Búsqueda Rápida",
+    desc: "Puedes filtrar tus documentos al instante por Materia (Matemáticas, Lenguaje...), por Grado (1° a 5°) o escribiendo directamente en la barra de búsqueda.",
+    icon: "ph-bold ph-magnifying-glass",
+    action: () => {}
+  },
+  {
+    targetId: "btnOpenModal",
+    title: "Subir Documento Comprimido",
+    desc: "Al pulsar aquí podrás subir tus archivos (PDF, Excel, Word). El sistema los comprime automáticamente para ahorrar memoria y te permite compartirlos o dejarlos privados.",
+    icon: "ph-bold ph-cloud-arrow-up",
+    action: () => {}
+  },
+  {
+    targetId: "documentsContainer",
+    title: "Visualizar y Descargar",
+    desc: "En cada tarjeta encontrarás el botón 'Ver' para leer la circular en pantalla y 'Descargar' para obtener el archivo original en tu computador en cualquier momento.",
+    icon: "ph-bold ph-file-arrow-down",
+    action: () => {}
+  }
+];
+
+let currentTourStepIndex = 0;
+
+// 6. Elementos del DOM
 const loginScreen = document.getElementById("loginScreen");
 const appContainer = document.getElementById("appContainer");
 const loginForm = document.getElementById("loginForm");
@@ -286,6 +315,7 @@ const storageProgressBar = document.getElementById("storageProgressBar");
 const storageUsedText = document.getElementById("storageUsedText");
 const storageFreeText = document.getElementById("storageFreeText");
 const fileQuotaHint = document.getElementById("fileQuotaHint");
+const quotaSummaryDesc = document.getElementById("quotaSummaryDesc");
 
 const bellBadge = document.getElementById("bellBadge");
 const sidebarInstitucionalBadge = document.getElementById("sidebarInstitucionalBadge");
@@ -353,7 +383,19 @@ const viewDocTitle = document.getElementById("viewDocTitle");
 const viewDocMetaSubtitle = document.getElementById("viewDocMetaSubtitle");
 const viewDocBody = document.getElementById("viewDocBody");
 
-// 6. Autenticación y Cierre
+// Elementos de Inducción
+const tourBackdrop = document.getElementById("tourBackdrop");
+const tourBox = document.getElementById("tourBox");
+const tourStepBadge = document.getElementById("tourStepBadge");
+const tourIcon = document.getElementById("tourIcon");
+const tourTitle = document.getElementById("tourTitle");
+const tourDesc = document.getElementById("tourDesc");
+const btnTourPrev = document.getElementById("btnTourPrev");
+const btnTourNext = document.getElementById("btnTourNext");
+const btnTourSkip = document.getElementById("btnTourSkip");
+const btnFloatingReplayTour = document.getElementById("btnFloatingReplayTour");
+
+// 7. Autenticación
 function initAuth() {
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -361,7 +403,7 @@ function initAuth() {
     const enteredPass = loginPasswordInput.value.trim();
 
     if (!userKey || !USERS[userKey]) {
-      alert("Por favor selecciona un perfil institucional.");
+      alert("Por favor selecciona un usuario institucional.");
       return;
     }
 
@@ -375,7 +417,7 @@ function initAuth() {
     }
 
     currentUser = expectedUser;
-    isBovedaUnlocked = false; // Requiere clave cada vez que se loguea
+    isBovedaUnlocked = false;
     loginScreen.classList.add("hidden");
     appContainer.classList.remove("hidden");
     loginPasswordInput.value = "";
@@ -383,11 +425,21 @@ function initAuth() {
     resetAllFiltersToDefault();
     updateUIForUser();
     renderApp();
+
+    // Si es el usuario de Inducción, iniciamos automáticamente el Tour
+    if (currentUser.role === "induccion") {
+      setTimeout(() => {
+        startTour();
+      }, 400);
+    } else {
+      endTour();
+    }
   });
 
   btnLogout.addEventListener("click", () => {
     currentUser = null;
     isBovedaUnlocked = false;
+    endTour();
     appContainer.classList.add("hidden");
     loginScreen.classList.remove("hidden");
     loginForm.reset();
@@ -428,25 +480,39 @@ function updateUIForUser() {
 
   if (isPrivileged) {
     adminTeacherSection.classList.remove("hidden");
-    btnBovedaFolder.classList.remove("hidden"); // Visible solo para Rectora/Admin
+    btnBovedaFolder.classList.remove("hidden");
     optionBovedaModal.classList.remove("hidden");
     labelAllFolders.textContent = "Todos los Documentos";
     topSubtitle.textContent = `Panel Directivo • ${currentUser.name}`;
     docTeacherSelect.disabled = false;
+    quotaSummaryDesc.innerHTML = `Límite por subida: <strong>2 GB</strong> (Rectoría / Admin).`;
+    btnFloatingReplayTour.classList.add("hidden");
+  } else if (currentUser.role === "induccion") {
+    adminTeacherSection.classList.add("hidden");
+    btnBovedaFolder.classList.add("hidden");
+    optionBovedaModal.classList.add("hidden");
+    labelAllFolders.textContent = `Mis Documentos de Inducción`;
+    topSubtitle.textContent = `Paso a Paso • Capacitación Docente`;
+    docTeacherSelect.value = "Jessica";
+    docTeacherSelect.disabled = true;
+    quotaSummaryDesc.innerHTML = `Límite por subida docente: <strong>15 MB</strong> por archivo.`;
+    btnFloatingReplayTour.classList.remove("hidden");
   } else {
     adminTeacherSection.classList.add("hidden");
-    btnBovedaFolder.classList.add("hidden"); // Oculto para docentes
+    btnBovedaFolder.classList.add("hidden");
     optionBovedaModal.classList.add("hidden");
     labelAllFolders.textContent = `Mis Documentos (${currentUser.name})`;
     topSubtitle.textContent = `Espacio de Trabajo • ${currentUser.name}`;
     docTeacherSelect.value = currentUser.name;
     docTeacherSelect.disabled = true;
+    quotaSummaryDesc.innerHTML = `Límite por subida docente: <strong>15 MB</strong> por archivo.`;
+    btnFloatingReplayTour.classList.add("hidden");
   }
 
   updateStorageMeter();
 }
 
-// 7. Medidor Dinámico de Almacenamiento Disponible (Límite 2 GB)
+// 8. Medidor de Almacenamiento
 function updateStorageMeter() {
   let totalBytesUsed = 0;
   documents.forEach(doc => {
@@ -461,7 +527,105 @@ function updateStorageMeter() {
   storageFreeText.textContent = `${formatBytes(bytesFree)} libres de 2 GB`;
 }
 
-// 8. Eventos de la Aplicación y Bóveda
+// 9. LÓGICA DEL TOUR DE INDUCCIÓN
+function startTour() {
+  currentTourStepIndex = 0;
+  tourBackdrop.classList.remove("hidden");
+  tourBox.classList.remove("hidden");
+  renderTourStep();
+}
+
+function renderTourStep() {
+  // Limpiar resaltados previos
+  document.querySelectorAll(".tour-highlighted-target").forEach(el => {
+    el.classList.remove("tour-highlighted-target");
+  });
+
+  const step = TOUR_STEPS[currentTourStepIndex];
+  step.action();
+
+  tourStepBadge.textContent = `Paso ${currentTourStepIndex + 1} de ${TOUR_STEPS.length}`;
+  tourIcon.innerHTML = `<i class="${step.icon}"></i>`;
+  tourTitle.textContent = step.title;
+  tourDesc.textContent = step.desc;
+
+  // Botón anterior
+  if (currentTourStepIndex === 0) {
+    btnTourPrev.classList.add("hidden");
+  } else {
+    btnTourPrev.classList.remove("hidden");
+  }
+
+  // Botón siguiente o finalizar
+  if (currentTourStepIndex === TOUR_STEPS.length - 1) {
+    btnTourNext.innerHTML = `¡Entendido! <i class="ph-bold ph-check"></i>`;
+  } else {
+    btnTourNext.innerHTML = `Siguiente <i class="ph-bold ph-arrow-right"></i>`;
+  }
+
+  // Posicionar cuadro del tour cerca del elemento resaltado
+  if (step.targetId) {
+    const targetEl = document.getElementById(step.targetId);
+    if (targetEl) {
+      targetEl.classList.add("tour-highlighted-target");
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      const rect = targetEl.getBoundingClientRect();
+      const isMobile = window.innerWidth <= 900;
+
+      if (!isMobile) {
+        // En escritorio: ubicar al lado o debajo según espacio
+        if (rect.right + 440 < window.innerWidth) {
+          tourBox.style.top = `${Math.max(20, Math.min(window.innerHeight - 320, rect.top))}px`;
+          tourBox.style.left = `${rect.right + 20}px`;
+          tourBox.style.transform = 'none';
+        } else {
+          tourBox.style.top = `${Math.max(20, Math.min(window.innerHeight - 320, rect.bottom + 15))}px`;
+          tourBox.style.left = `${Math.max(20, rect.left)}px`;
+          tourBox.style.transform = 'none';
+        }
+      } else {
+        // En móvil: centrado en pantalla inferior
+        tourBox.style.top = 'auto';
+        tourBox.style.bottom = '20px';
+        tourBox.style.left = '50%';
+        tourBox.style.transform = 'translateX(-50%)';
+      }
+    }
+  } else {
+    // Centro de la pantalla para el paso 1
+    tourBox.style.top = '50%';
+    tourBox.style.left = '50%';
+    tourBox.style.transform = 'translate(-50%, -50%)';
+    tourBox.style.bottom = 'auto';
+  }
+}
+
+function nextTourStep() {
+  if (currentTourStepIndex < TOUR_STEPS.length - 1) {
+    currentTourStepIndex++;
+    renderTourStep();
+  } else {
+    endTour();
+  }
+}
+
+function prevTourStep() {
+  if (currentTourStepIndex > 0) {
+    currentTourStepIndex--;
+    renderTourStep();
+  }
+}
+
+function endTour() {
+  document.querySelectorAll(".tour-highlighted-target").forEach(el => {
+    el.classList.remove("tour-highlighted-target");
+  });
+  tourBackdrop.classList.add("hidden");
+  tourBox.classList.add("hidden");
+}
+
+// 10. Eventos de la Aplicación
 function setupEvents() {
   btnToggleSidebar.addEventListener("click", () => {
     mainSidebar.classList.add("mobile-open");
@@ -481,6 +645,12 @@ function setupEvents() {
     if (btnInst) btnInst.click();
   });
 
+  // Eventos de botones del Tour
+  btnTourNext.addEventListener("click", nextTourStep);
+  btnTourPrev.addEventListener("click", prevTourStep);
+  btnTourSkip.addEventListener("click", endTour);
+  btnFloatingReplayTour.addEventListener("click", startTour);
+
   document.querySelectorAll(".teacher-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".teacher-btn").forEach(b => b.classList.remove("active"));
@@ -495,7 +665,6 @@ function setupEvents() {
     btn.addEventListener("click", () => {
       const folderKey = btn.dataset.folder;
 
-      // Si selecciona la Bóveda y no está desbloqueada, pedir clave
       if (folderKey === "boveda" && !isBovedaUnlocked) {
         openBovedaAuthModal();
         return;
@@ -520,7 +689,7 @@ function setupEvents() {
     renderApp();
   }
 
-  // Desbloqueo de Bóveda
+  // Bóveda
   function openBovedaAuthModal() {
     bovedaPasswordInput.value = "";
     modalBovedaAuth.classList.add("show");
@@ -550,7 +719,6 @@ function setupEvents() {
     }
   });
 
-  // Filtros de Bóveda
   bovedaYearFilter.addEventListener("change", (e) => {
     currentBovedaYear = e.target.value;
     renderApp();
@@ -561,7 +729,6 @@ function setupEvents() {
     renderApp();
   });
 
-  // Buscador y Filtros Generales
   searchInput.addEventListener("input", (e) => {
     currentSearch = e.target.value.toLowerCase().trim();
     renderApp();
@@ -577,7 +744,6 @@ function setupEvents() {
     renderApp();
   });
 
-  // Alternar vista
   viewCardsBtn.addEventListener("click", () => {
     currentView = "cards";
     viewCardsBtn.classList.add("active");
@@ -594,7 +760,6 @@ function setupEvents() {
     tableContainer.classList.remove("hidden");
   });
 
-  // Modal Subir
   btnOpenModal.addEventListener("click", openModalForCreate);
   btnCloseModal.addEventListener("click", closeModal);
   btnCancelModal.addEventListener("click", closeModal);
@@ -602,7 +767,6 @@ function setupEvents() {
     if (e.target === modalDoc) closeModal();
   });
 
-  // Cambio de carpeta en el formulario (muestra campos de bóveda si aplica)
   docFolderSelect.addEventListener("change", (e) => {
     handleFolderChangeInModal(e.target.value);
   });
@@ -611,7 +775,6 @@ function setupEvents() {
   btnRemoveFile.addEventListener("click", resetFileInput);
   docForm.addEventListener("submit", handleFormSubmit);
 
-  // Modal Ver Documento
   btnCloseViewModal.addEventListener("click", closeViewModal);
   btnDoneView.addEventListener("click", closeViewModal);
   btnDownloadFromView.addEventListener("click", () => {
@@ -635,16 +798,16 @@ function handleFolderChangeInModal(folderVal) {
   }
 }
 
-// 9. Compresión y Validación de Cuota
+// 11. Compresión y Subida
 async function handleFileCompressAndSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
 
   if (file.size > currentUser.maxUploadBytes) {
-    if (currentUser.role === "docente") {
+    if (currentUser.role === "docente" || currentUser.role === "induccion") {
       alert(`⚠️ Archivo demasiado pesado (${formatBytes(file.size)}).\n\nComo docente tu límite por documento es de 15 MB.`);
     } else {
-      alert(`⚠️️ Archivo excede el límite máximo institucional permitido de 2 GB (${formatBytes(file.size)}).`);
+      alert(`⚠️ Archivo excede el límite de 2 GB (${formatBytes(file.size)}).`);
     }
     resetFileInput();
     return;
@@ -714,7 +877,7 @@ function resetFileInput() {
   dropText.textContent = "Clic o arrastra el archivo aquí";
 }
 
-// 10. Modal Crear y Editar
+// 12. Modal Crear y Editar
 function openModalForCreate() {
   editDocId.value = "";
   modalTitle.textContent = "Subir Documento";
@@ -727,7 +890,6 @@ function openModalForCreate() {
     docTeacherSelect.disabled = false;
     docTeacherSelect.value = currentUser.name === "Claudia (Rectora)" ? "Claudia (Rectora)" : "Administrador";
     
-    // Si estaba navegando dentro de la Bóveda, preseleccionar la bóveda
     if (currentFolderFilter === "boveda") {
       docFolderSelect.value = "boveda";
       handleFolderChangeInModal("boveda");
@@ -736,7 +898,7 @@ function openModalForCreate() {
       handleFolderChangeInModal("institucional");
     }
   } else {
-    docTeacherSelect.value = currentUser.name;
+    docTeacherSelect.value = currentUser.role === "induccion" ? "Jessica" : currentUser.name;
     docTeacherSelect.disabled = true;
     docFolderSelect.value = "planeaciones";
     handleFolderChangeInModal("planeaciones");
@@ -750,7 +912,9 @@ window.editDoc = function(id) {
   if (!doc) return;
 
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
-  if (!isPrivileged && doc.teacher !== currentUser.name) {
+  const teacherName = currentUser.role === "induccion" ? "Jessica" : currentUser.name;
+
+  if (!isPrivileged && doc.teacher !== teacherName) {
     alert("Solo tienes permisos para editar tus propios documentos.");
     return;
   }
@@ -791,7 +955,7 @@ function closeModal() {
   resetFileInput();
 }
 
-// 11. Guardar en Base de Datos
+// 13. Guardar en Base de Datos
 async function handleFormSubmit(e) {
   e.preventDefault();
 
@@ -808,9 +972,12 @@ async function handleFormSubmit(e) {
     hour12: true
   });
 
-  const assignedTeacher = (currentUser.role === "docente") 
-    ? currentUser.name 
-    : docTeacherSelect.value;
+  let assignedTeacher = docTeacherSelect.value;
+  if (currentUser.role === "induccion") {
+    assignedTeacher = "Jessica (Demostración)";
+  } else if (currentUser.role === "docente") {
+    assignedTeacher = currentUser.name;
+  }
 
   const docData = {
     title: document.getElementById("docTitle").value.trim(),
@@ -887,7 +1054,7 @@ async function handleFormSubmit(e) {
   alert(`✅ Documento "${docData.title}" guardado con éxito.`);
 }
 
-// 12. Eliminar Registro
+// 14. Eliminar Registro
 window.deleteDoc = async function(id) {
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
   if (!isPrivileged) {
@@ -903,7 +1070,7 @@ window.deleteDoc = async function(id) {
   }
 };
 
-// 13. Modal Ver Documento
+// 15. Modal Ver Documento
 window.viewDoc = function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
@@ -967,7 +1134,8 @@ function isDocUnread(doc) {
     return false;
   }
   const isTarget = doc.folder === "institucional" || doc.isPublic;
-  const isNotMine = doc.teacher !== currentUser.name;
+  const teacherRef = currentUser.role === "induccion" ? "Jessica" : currentUser.name;
+  const isNotMine = doc.teacher !== teacherRef;
   if (isTarget && isNotMine) {
     const userReads = readReceipts[currentUser.name] || [];
     return !userReads.includes(doc.id);
@@ -975,7 +1143,7 @@ function isDocUnread(doc) {
   return false;
 }
 
-// 14. Descarga de Archivos
+// 16. Descarga de Archivos
 window.downloadDoc = async function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
@@ -1023,63 +1191,46 @@ function triggerDownload(url, filename) {
   document.body.removeChild(a);
 }
 
-// 15. Filtrado
+// 17. Filtrado
 function getFilteredDocuments() {
   if (!currentUser) return [];
 
   const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
 
   return documents.filter(doc => {
-    // 1. REGLA DE BÓVEDA: Nadie que no sea Rectora o Admin puede ver documentos de bóveda
     if (doc.folder === "boveda" && !isPrivileged) {
       return false;
     }
 
-    // Si es docente: solo sus archivos O los que sean públicos
     if (!isPrivileged) {
-      const isMine = doc.teacher === currentUser.name;
+      const teacherMatch = currentUser.role === "induccion" ? (doc.teacher === "Jessica" || doc.teacher.includes("Jessica")) : (doc.teacher === currentUser.name);
       const isShared = Boolean(doc.isPublic) || doc.folder === "institucional";
-      if (!isMine && !isShared) return false;
+      if (!teacherMatch && !isShared) return false;
     }
 
-    // 2. Filtro por Docente (Admin/Rectora)
     if (isPrivileged && currentTeacherFilter !== "all") {
       if (doc.teacher !== currentTeacherFilter) return false;
     }
 
-    // 3. Filtro por Carpeta Activa
     if (currentFolderFilter === "boveda") {
       if (doc.folder !== "boveda") return false;
-      
-      // Filtros específicos dentro de la Bóveda por año y subcarpeta
-      if (currentBovedaYear !== "all" && doc.bovedaYear !== currentBovedaYear) {
-        return false;
-      }
-      if (currentBovedaSubfolder !== "all" && doc.bovedaSubfolder !== currentBovedaSubfolder) {
-        return false;
-      }
+      if (currentBovedaYear !== "all" && doc.bovedaYear !== currentBovedaYear) return false;
+      if (currentBovedaSubfolder !== "all" && doc.bovedaSubfolder !== currentBovedaSubfolder) return false;
     } else if (currentFolderFilter === "publico") {
       if (!doc.isPublic) return false;
     } else if (currentFolderFilter !== "all") {
       if (doc.folder !== currentFolderFilter) return false;
     } else {
-      // En "Todos los documentos", ocultar bóveda para mantener la discreción a menos que se pulse la bóveda
       if (doc.folder === "boveda" && currentFolderFilter === "all") {
         return false;
       }
     }
 
-    // 4. Filtros Generales
     if (currentFolderFilter !== "boveda") {
-      if (currentGradeFilter && doc.grade !== currentGradeFilter) {
-        return false;
-      }
-      if (currentSubjectFilter && doc.subject !== currentSubjectFilter) {
-        return false;
-      }
+      if (currentGradeFilter && doc.grade !== currentGradeFilter) return false;
+      if (currentSubjectFilter && doc.subject !== currentSubjectFilter) return false;
     }
 
-    // 5. Buscador
     if (currentSearch) {
       const q = currentSearch;
       const match = 
@@ -1098,7 +1249,7 @@ function getFilteredDocuments() {
   });
 }
 
-// 16. Renderizado de Interfaz
+// 18. Renderizado
 function renderApp() {
   updateCounts();
   updateBreadcrumb();
@@ -1118,7 +1269,8 @@ function renderApp() {
   // Tarjetas
   documentsContainer.innerHTML = filtered.map(doc => {
     const canDelete = isPrivileged;
-    const canEdit = isPrivileged || doc.teacher === currentUser.name;
+    const teacherRef = currentUser.role === "induccion" ? "Jessica" : currentUser.name;
+    const canEdit = isPrivileged || doc.teacher === teacherRef;
     const fileIcon = getFileIconClass(doc.fileName);
     const folderPastelClass = getFolderPastelClass(doc.folder);
     const unread = isDocUnread(doc);
@@ -1201,7 +1353,8 @@ function renderApp() {
   // Tabla
   tableBody.innerHTML = filtered.map(doc => {
     const canDelete = isPrivileged;
-    const canEdit = isPrivileged || doc.teacher === currentUser.name;
+    const teacherRef = currentUser.role === "induccion" ? "Jessica" : currentUser.name;
+    const canEdit = isPrivileged || doc.teacher === teacherRef;
     const fileIcon = getFileIconClass(doc.fileName);
     const folderPastelClass = getFolderPastelClass(doc.folder);
     const unread = isDocUnread(doc);
@@ -1267,16 +1420,16 @@ function updateBreadcrumb() {
   currentPathText.textContent = `${teacherText} • ${folderMap[currentFolderFilter] || currentFolderFilter}`;
 }
 
-// 17. Contadores
+// 19. Contadores
 function updateCounts() {
   const isPrivileged = currentUser && (currentUser.role === "admin" || currentUser.role === "rectora");
 
   const visibleDocs = isPrivileged 
     ? documents 
-    : documents.filter(d => (d.teacher === currentUser.name || d.isPublic || d.folder === "institucional") && d.folder !== "boveda");
+    : documents.filter(d => (d.teacher === currentUser.name || d.teacher === "Jessica" || d.isPublic || d.folder === "institucional") && d.folder !== "boveda");
 
   document.getElementById("count-all-teachers").textContent = visibleDocs.filter(d => d.folder !== "boveda").length;
-  document.getElementById("count-jessica").textContent = documents.filter(d => d.teacher === "Jessica").length;
+  document.getElementById("count-jessica").textContent = documents.filter(d => d.teacher.includes("Jessica")).length;
   document.getElementById("count-yuri").textContent = documents.filter(d => d.teacher === "Yuri").length;
   document.getElementById("count-elcy").textContent = documents.filter(d => d.teacher === "Elcy").length;
   document.getElementById("count-claudia").textContent = documents.filter(d => d.teacher === "Claudia (Rectora)").length;
