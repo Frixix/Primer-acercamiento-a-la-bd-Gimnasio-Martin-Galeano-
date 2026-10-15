@@ -1277,9 +1277,7 @@ select {
 
 .hidden { display: none !important; }
 
-/* ========================================================
-   ANIMACIONES Y ESTILOS DEL TOUR DE INDUCCIÓN
-   ======================================================== */
+/* Tour Spotlight */
 .tour-backdrop {
   position: fixed;
   inset: 0;
@@ -1293,7 +1291,7 @@ select {
   position: fixed;
   z-index: 1010;
   width: 90%;
-  max-width: 420px;
+  max-width: 440px;
   background: var(--surface);
   border: 1px solid var(--pastel-inst-border);
   border-radius: var(--radius-lg);
@@ -1373,7 +1371,6 @@ select {
   gap: 6px;
 }
 
-/* Efecto Spotlight sobre elemento resaltado */
 .tour-highlighted-target {
   position: relative !important;
   z-index: 1005 !important;
@@ -1390,7 +1387,6 @@ select {
   100% { box-shadow: 0 0 0 4px #3b82f6, 0 0 25px rgba(59, 130, 246, 0.35); }
 }
 
-/* Botón flotante para repetir la inducción */
 .btn-floating-tour {
   position: fixed;
   bottom: 24px;

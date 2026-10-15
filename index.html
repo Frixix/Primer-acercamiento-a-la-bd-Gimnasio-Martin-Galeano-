@@ -35,7 +35,8 @@
           <label for="loginUserSelect">Seleccione usuario</label>
           <select id="loginUserSelect" required>
             <option value="" disabled selected>-- Seleccione su cuenta --</option>
-            <option value="induccion">✨ Inducción Profesoras (Tour Guiado)</option>
+            <option value="induccion_rectora">👑 Inducción Rectora (Tour Directivo)</option>
+            <option value="induccion">✨ Inducción Profesoras (Tour Docente)</option>
             <option value="claudia">Claudia (Rectora)</option>
             <option value="jessica">Jessica</option>
             <option value="yuri">Yuri</option>
@@ -48,7 +49,7 @@
           <label for="loginPassword">Contraseña</label>
           <input type="password" id="loginPassword" placeholder="Ingrese contraseña" required>
           <small class="helper-text">
-            Claves: <code>induccion2026</code>, <code>rectora2026</code>, <code>jessica2026</code>, <code>yuri2026</code>, <code>elcy2026</code>, <code>admin2026</code>
+            Claves: <code>induccionrectora2026</code>, <code>induccion2026</code>, <code>rectora2026</code>, <code>jessica2026</code>, <code>admin2026</code>
           </small>
         </div>
 
@@ -159,7 +160,7 @@
           <nav class="folder-list">
             <button class="folder-btn folder-all active" data-folder="all">
               <i class="ph-fill ph-folders"></i>
-              <span id="labelAllFolders">Mis Documentos</span>
+              <span id="labelAllFolders">Todos los Documentos</span>
             </button>
             <button class="folder-btn folder-publico" data-folder="publico">
               <i class="ph-bold ph-globe"></i>
@@ -339,10 +340,10 @@
     </div>
   </div>
 
-  <!-- ELEMENTOS DE LA INDUCCIÓN ANIMADA (TOUR SPOTLIGHT) -->
+  <!-- ELEMENTOS DE INDUCCIÓN (SPOTLIGHT) -->
   <div id="tourBackdrop" class="tour-backdrop hidden"></div>
   <div id="tourBox" class="tour-box hidden">
-    <div class="tour-badge-step" id="tourStepBadge">Paso 1 de 5</div>
+    <div class="tour-badge-step" id="tourStepBadge">Paso 1 de 6</div>
     <div class="tour-content">
       <div class="tour-header-icon" id="tourIcon"><i class="ph-bold ph-sparkle"></i></div>
       <h3 id="tourTitle">Título de la Inducción</h3>
@@ -357,9 +358,9 @@
     </div>
   </div>
 
-  <!-- Botón flotante para repetir inducción en caso de necesitarlo -->
+  <!-- Botón flotante para repetir inducción -->
   <button id="btnFloatingReplayTour" class="btn-floating-tour hidden" title="Reiniciar recorrido de inducción">
-    <i class="ph-bold ph-sparkle"></i> <span>Ver Inducción Docente</span>
+    <i class="ph-bold ph-sparkle"></i> <span id="lblFloatingTour">Ver Inducción</span>
   </button>
 
   <!-- MODAL DE CLAVE DE BÓVEDA -->

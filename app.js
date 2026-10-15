@@ -1,13 +1,22 @@
 /**
  * Sistema Documental Primaria - Gimnasio Martin Galeano
- * - Usuario especial: Inducción Profesoras (Tour interactivo guiado)
- * - Spotlight animado paso a paso con explicaciones pedagógicas
+ * - Inducción guiada para Profesoras y para la Rectora (Claudia)
+ * - Spotlight animado paso a paso con explicaciones pedagógicas y directivas
  * - Bóveda de Rectoría protegida con clave: boveda2026
  * - Límites: 15 MB docentes / 2 GB rectoría
  */
 
-// 1. Usuarios Oficiales con cuenta de Inducción
+// 1. Usuarios Oficiales con cuenta de Inducción Docente y Rectora
 const USERS = {
+  induccion_rectora: { 
+    name: "Claudia (Inducción Rectora)", 
+    role: "induccion_rectora", 
+    label: "Capacitación de Supervisión Directiva", 
+    initial: "👑", 
+    pass: "induccionrectora2026",
+    maxUploadBytes: 2 * 1024 * 1024 * 1024,
+    maxUploadLabel: "2 GB"
+  },
   induccion: { 
     name: "Inducción Profesoras", 
     role: "induccion", 
@@ -225,7 +234,7 @@ const initialDocuments = [
 
 let documents = [];
 try {
-  const stored = localStorage.getItem('galeano_db_clean_records_v8');
+  const stored = localStorage.getItem('galeano_db_clean_records_v9');
   documents = stored ? JSON.parse(stored) : initialDocuments;
 } catch (e) {
   console.warn("Inicializando base de datos local:", e);
@@ -234,7 +243,7 @@ try {
 
 function saveDocuments() {
   try {
-    localStorage.setItem('galeano_db_clean_records_v8', JSON.stringify(documents));
+    localStorage.setItem('galeano_db_clean_records_v9', JSON.stringify(documents));
   } catch (err) {
     alert("Error al actualizar la base de datos.");
   }
@@ -253,19 +262,19 @@ let currentBovedaSubfolder = "all";
 let processedUploadData = null;
 let currentPreviewDocId = null;
 
-// 5. Configuración de Pasos del Tour de Inducción
-const TOUR_STEPS = [
+// 5. Configuración de Pasos de Tours Guiados (Docente vs Rectora)
+const TOUR_STEPS_DOCENTE = [
   {
-    targetId: null, // Centro de pantalla
-    title: "¡Bienvenida al Sistema Documental!",
-    desc: "Este espacio fue diseñado para organizar de forma sencilla y privada el trabajo de Básica Primaria del Gimnasio Martin Galeano. Vamos a ver en 4 pasos cómo funciona.",
+    targetId: null,
+    title: "¡Bienvenida, Profesora!",
+    desc: "Este espacio fue diseñado para organizar de forma sencilla y privada el trabajo de Básica Primaria del Gimnasio Martin Galeano. En 4 pasos veremos cómo funciona.",
     icon: "ph-bold ph-hand-waving",
     action: () => {}
   },
   {
     targetId: "sidebarFoldersSection",
     title: "Tus Carpetas y Circulares",
-    desc: "En este menú lateral encuentras tus planeaciones, planillas y talleres. Además, en 'Institucional & Circulares' recibirás avisos de Rectoría con un globo rojo como en WhatsApp.",
+    desc: "En este menú lateral encuentras tus planeaciones, planillas y talleres. Además, en 'Institucional & Circulares' recibirás avisos de Rectoría con un globo rojo estilo WhatsApp.",
     icon: "ph-bold ph-folders",
     action: () => {
       document.getElementById("mainSidebar").classList.remove("mobile-open");
@@ -281,7 +290,7 @@ const TOUR_STEPS = [
   {
     targetId: "btnOpenModal",
     title: "Subir Documento Comprimido",
-    desc: "Al pulsar aquí podrás subir tus archivos (PDF, Excel, Word). El sistema los comprime automáticamente para ahorrar memoria y te permite compartirlos o dejarlos privados.",
+    desc: "Al pulsar aquí podrás subir tus archivos (PDF, Excel, Word). El sistema los comprime automáticamente para ahorrar memoria (límite de 15 MB).",
     icon: "ph-bold ph-cloud-arrow-up",
     action: () => {}
   },
@@ -294,6 +303,54 @@ const TOUR_STEPS = [
   }
 ];
 
+const TOUR_STEPS_RECTORA = [
+  {
+    targetId: null,
+    title: "Bienvenida, Rectora Claudia 👑",
+    desc: "Este es su Centro de Control y Supervisión Directiva de Básica Primaria del Gimnasio Martin Galeano. Diseñado para auditar todo el colegio con total seguridad y sencillez.",
+    icon: "ph-bold ph-crown",
+    action: () => {}
+  },
+  {
+    targetId: "adminTeacherSection",
+    title: "1. Auditoría Docente en Tiempo Real",
+    desc: "Aquí puede filtrar con un solo clic los documentos de Jessica, Yuri o Elcy. Podrá ver qué ha subido cada profesora, con su fecha exacta y sin que ellas puedan borrar registros.",
+    icon: "ph-bold ph-users-three",
+    action: () => {
+      document.getElementById("mainSidebar").classList.remove("mobile-open");
+    }
+  },
+  {
+    targetId: "btnOpenModal",
+    title: "2. Emisión de Circulares y Comunicados",
+    desc: "Desde 'Subir Documento', marque la casilla '📢 Compartir con todos los profesores'. A las docentes les aparecerá de inmediato una notificación estilo WhatsApp para leer su comunicado.",
+    icon: "ph-bold ph-megaphone",
+    action: () => {}
+  },
+  {
+    targetId: "generalFiltersBar",
+    title: "3. Búsqueda y Control por Radicado",
+    desc: "Cada documento cuenta con un código único (ej. MG-PRI-001) para facilitar citas en reuniones de padres, actas de comisión y auditorías de la Secretaría de Educación.",
+    icon: "ph-bold ph-magnifying-glass",
+    action: () => {}
+  },
+  {
+    targetId: "btnBovedaFolder",
+    title: "4. Bóveda Confidencial Protegida",
+    desc: "Solo visible para usted y el Administrador con la clave 'boveda2026'. Aquí custodia actas de Consejo Directivo, balances financieros, contratos y soportes PEI organizados por año.",
+    icon: "ph-bold ph-vault",
+    action: () => {}
+  },
+  {
+    targetId: "sidebarStorageCard",
+    title: "5. Capacidad Masiva y Almacenamiento",
+    desc: "Su cuenta institucional cuenta con un límite extendido de hasta 2 GB por archivo. La barra inferior calcula el espacio disponible en tiempo real.",
+    icon: "ph-bold ph-hard-drive",
+    action: () => {}
+  }
+];
+
+let activeTourSteps = [];
 let currentTourStepIndex = 0;
 
 // 6. Elementos del DOM
@@ -394,6 +451,7 @@ const btnTourPrev = document.getElementById("btnTourPrev");
 const btnTourNext = document.getElementById("btnTourNext");
 const btnTourSkip = document.getElementById("btnTourSkip");
 const btnFloatingReplayTour = document.getElementById("btnFloatingReplayTour");
+const lblFloatingTour = document.getElementById("lblFloatingTour");
 
 // 7. Autenticación
 function initAuth() {
@@ -426,11 +484,15 @@ function initAuth() {
     updateUIForUser();
     renderApp();
 
-    // Si es el usuario de Inducción, iniciamos automáticamente el Tour
-    if (currentUser.role === "induccion") {
-      setTimeout(() => {
-        startTour();
-      }, 400);
+    // Inicio automático del tour correspondiente
+    if (currentUser.role === "induccion_rectora") {
+      activeTourSteps = TOUR_STEPS_RECTORA;
+      lblFloatingTour.textContent = "Ver Inducción Rectora";
+      setTimeout(() => startTour(), 400);
+    } else if (currentUser.role === "induccion") {
+      activeTourSteps = TOUR_STEPS_DOCENTE;
+      lblFloatingTour.textContent = "Ver Inducción Docente";
+      setTimeout(() => startTour(), 400);
     } else {
       endTour();
     }
@@ -474,7 +536,7 @@ function updateUIForUser() {
   navUserRole.textContent = currentUser.label;
   navAvatar.textContent = currentUser.initial;
 
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
 
   fileQuotaHint.textContent = `Límite autorizado para tu cuenta: hasta ${currentUser.maxUploadLabel} por archivo.`;
 
@@ -486,7 +548,12 @@ function updateUIForUser() {
     topSubtitle.textContent = `Panel Directivo • ${currentUser.name}`;
     docTeacherSelect.disabled = false;
     quotaSummaryDesc.innerHTML = `Límite por subida: <strong>2 GB</strong> (Rectoría / Admin).`;
-    btnFloatingReplayTour.classList.add("hidden");
+    
+    if (currentUser.role === "induccion_rectora") {
+      btnFloatingReplayTour.classList.remove("hidden");
+    } else {
+      btnFloatingReplayTour.classList.add("hidden");
+    }
   } else if (currentUser.role === "induccion") {
     adminTeacherSection.classList.add("hidden");
     btnBovedaFolder.classList.add("hidden");
@@ -527,7 +594,7 @@ function updateStorageMeter() {
   storageFreeText.textContent = `${formatBytes(bytesFree)} libres de 2 GB`;
 }
 
-// 9. LÓGICA DEL TOUR DE INDUCCIÓN
+// 9. Lógica del Tour Guiado
 function startTour() {
   currentTourStepIndex = 0;
   tourBackdrop.classList.remove("hidden");
@@ -536,34 +603,31 @@ function startTour() {
 }
 
 function renderTourStep() {
-  // Limpiar resaltados previos
   document.querySelectorAll(".tour-highlighted-target").forEach(el => {
     el.classList.remove("tour-highlighted-target");
   });
 
-  const step = TOUR_STEPS[currentTourStepIndex];
+  const step = activeTourSteps[currentTourStepIndex];
+  if (!step) return;
   step.action();
 
-  tourStepBadge.textContent = `Paso ${currentTourStepIndex + 1} de ${TOUR_STEPS.length}`;
+  tourStepBadge.textContent = `Paso ${currentTourStepIndex + 1} de ${activeTourSteps.length}`;
   tourIcon.innerHTML = `<i class="${step.icon}"></i>`;
   tourTitle.textContent = step.title;
   tourDesc.textContent = step.desc;
 
-  // Botón anterior
   if (currentTourStepIndex === 0) {
     btnTourPrev.classList.add("hidden");
   } else {
     btnTourPrev.classList.remove("hidden");
   }
 
-  // Botón siguiente o finalizar
-  if (currentTourStepIndex === TOUR_STEPS.length - 1) {
+  if (currentTourStepIndex === activeTourSteps.length - 1) {
     btnTourNext.innerHTML = `¡Entendido! <i class="ph-bold ph-check"></i>`;
   } else {
     btnTourNext.innerHTML = `Siguiente <i class="ph-bold ph-arrow-right"></i>`;
   }
 
-  // Posicionar cuadro del tour cerca del elemento resaltado
   if (step.targetId) {
     const targetEl = document.getElementById(step.targetId);
     if (targetEl) {
@@ -574,18 +638,16 @@ function renderTourStep() {
       const isMobile = window.innerWidth <= 900;
 
       if (!isMobile) {
-        // En escritorio: ubicar al lado o debajo según espacio
-        if (rect.right + 440 < window.innerWidth) {
-          tourBox.style.top = `${Math.max(20, Math.min(window.innerHeight - 320, rect.top))}px`;
+        if (rect.right + 450 < window.innerWidth) {
+          tourBox.style.top = `${Math.max(20, Math.min(window.innerHeight - 340, rect.top))}px`;
           tourBox.style.left = `${rect.right + 20}px`;
           tourBox.style.transform = 'none';
         } else {
-          tourBox.style.top = `${Math.max(20, Math.min(window.innerHeight - 320, rect.bottom + 15))}px`;
+          tourBox.style.top = `${Math.max(20, Math.min(window.innerHeight - 340, rect.bottom + 15))}px`;
           tourBox.style.left = `${Math.max(20, rect.left)}px`;
           tourBox.style.transform = 'none';
         }
       } else {
-        // En móvil: centrado en pantalla inferior
         tourBox.style.top = 'auto';
         tourBox.style.bottom = '20px';
         tourBox.style.left = '50%';
@@ -593,7 +655,6 @@ function renderTourStep() {
       }
     }
   } else {
-    // Centro de la pantalla para el paso 1
     tourBox.style.top = '50%';
     tourBox.style.left = '50%';
     tourBox.style.transform = 'translate(-50%, -50%)';
@@ -602,7 +663,7 @@ function renderTourStep() {
 }
 
 function nextTourStep() {
-  if (currentTourStepIndex < TOUR_STEPS.length - 1) {
+  if (currentTourStepIndex < activeTourSteps.length - 1) {
     currentTourStepIndex++;
     renderTourStep();
   } else {
@@ -645,7 +706,6 @@ function setupEvents() {
     if (btnInst) btnInst.click();
   });
 
-  // Eventos de botones del Tour
   btnTourNext.addEventListener("click", nextTourStep);
   btnTourPrev.addEventListener("click", prevTourStep);
   btnTourSkip.addEventListener("click", endTour);
@@ -689,7 +749,6 @@ function setupEvents() {
     renderApp();
   }
 
-  // Bóveda
   function openBovedaAuthModal() {
     bovedaPasswordInput.value = "";
     modalBovedaAuth.classList.add("show");
@@ -884,11 +943,11 @@ function openModalForCreate() {
   docForm.reset();
   resetFileInput();
 
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
 
   if (isPrivileged) {
     docTeacherSelect.disabled = false;
-    docTeacherSelect.value = currentUser.name === "Claudia (Rectora)" ? "Claudia (Rectora)" : "Administrador";
+    docTeacherSelect.value = currentUser.name.includes("Claudia") ? "Claudia (Rectora)" : "Administrador";
     
     if (currentFolderFilter === "boveda") {
       docFolderSelect.value = "boveda";
@@ -911,7 +970,7 @@ window.editDoc = function(id) {
   const doc = documents.find(d => d.id === id);
   if (!doc) return;
 
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
   const teacherName = currentUser.role === "induccion" ? "Jessica" : currentUser.name;
 
   if (!isPrivileged && doc.teacher !== teacherName) {
@@ -975,6 +1034,8 @@ async function handleFormSubmit(e) {
   let assignedTeacher = docTeacherSelect.value;
   if (currentUser.role === "induccion") {
     assignedTeacher = "Jessica (Demostración)";
+  } else if (currentUser.role === "induccion_rectora") {
+    assignedTeacher = "Claudia (Rectora)";
   } else if (currentUser.role === "docente") {
     assignedTeacher = currentUser.name;
   }
@@ -1056,7 +1117,7 @@ async function handleFormSubmit(e) {
 
 // 14. Eliminar Registro
 window.deleteDoc = async function(id) {
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
   if (!isPrivileged) {
     alert("Acción restringida: Como docente no puedes eliminar registros. Solo Rectoría o el Administrador.");
     return;
@@ -1130,7 +1191,7 @@ function markAsRead(docId) {
 }
 
 function isDocUnread(doc) {
-  if (!currentUser || currentUser.role === "rectora" || currentUser.role === "admin") {
+  if (!currentUser || currentUser.role === "rectora" || currentUser.role === "admin" || currentUser.role === "induccion_rectora") {
     return false;
   }
   const isTarget = doc.folder === "institucional" || doc.isPublic;
@@ -1195,7 +1256,7 @@ function triggerDownload(url, filename) {
 function getFilteredDocuments() {
   if (!currentUser) return [];
 
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
 
   return documents.filter(doc => {
     if (doc.folder === "boveda" && !isPrivileged) {
@@ -1264,7 +1325,7 @@ function renderApp() {
   }
 
   emptyState.classList.add("hidden");
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
 
   // Tarjetas
   documentsContainer.innerHTML = filtered.map(doc => {
@@ -1401,7 +1462,7 @@ function renderApp() {
 }
 
 function updateBreadcrumb() {
-  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora";
+  const isPrivileged = currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora";
   const teacherText = isPrivileged 
     ? (currentTeacherFilter === "all" ? "Todos los docentes" : `Docente: ${currentTeacherFilter}`) 
     : `Mis Archivos (${currentUser.name})`;
@@ -1422,7 +1483,7 @@ function updateBreadcrumb() {
 
 // 19. Contadores
 function updateCounts() {
-  const isPrivileged = currentUser && (currentUser.role === "admin" || currentUser.role === "rectora");
+  const isPrivileged = currentUser && (currentUser.role === "admin" || currentUser.role === "rectora" || currentUser.role === "induccion_rectora");
 
   const visibleDocs = isPrivileged 
     ? documents 
